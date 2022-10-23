@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/22 14:43:47 by mamartin          #+#    #+#             */
-/*   Updated: 2022/09/22 15:36:33 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/23 01:12:08 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,7 @@ int ft_strtof(const char* nptr, double* value)
 	if (nptr[i] == '\0')
 		return -1;
 
-	for (i; nptr[i]; i++)
+	for (i = (int)i; nptr[i]; i++) // i = (int)i is to avoid a stupid warning
 	{
 		if (nptr[i] == '.')
 		{

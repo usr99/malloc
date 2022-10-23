@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/18 04:08:52 by mamartin          #+#    #+#             */
-/*   Updated: 2022/09/22 16:22:10 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/23 01:09:56 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,7 +106,6 @@ t_expected_opts* find_option(char optname, t_expected_opts* options, int count)
 void* parse_option_parameter(const char* str, t_paramtype type)
 {
 	void* ptr;
-	int i;
 
 	switch (type)
 	{

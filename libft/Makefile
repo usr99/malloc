@@ -24,6 +24,7 @@ OBJDIR = objs/
 OBJS = ${addprefix ${OBJDIR}, ${SRC:.c=.o}}
 
 CC = gcc
+CFLAGS = -Wall -Wextra -Werror
 RM = rm -rf
 
 ##################################################
