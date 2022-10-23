@@ -10,5 +10,5 @@ libft_malloc_x86_64_Darwin.so
 
 # Debug
 main.c
-test
+test*
 a.out

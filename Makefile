@@ -8,7 +8,7 @@ endif
 SO_LIB	= libft_malloc_${HOSTTYPE}.so
 TARGET	= libft_malloc.so
 
-CFLAGS	= -Wall -Wextra -Werror -fpic
+CFLAGS	= -Wall -Wextra -fpic -g #-Werror
 LFLAGS	= -shared
 CC		= gcc
 
@@ -16,7 +16,7 @@ INC 	= -I ./include -I ./libft
 
 SRCDIR	= ./src/
 SRC		= malloc.c
-HEADERS = malloc.h
+HEADERS = libft_malloc.h
 DEPS = ${addprefix include/, ${HEADERS}}
 
 OBJDIR	= ./objs/
@@ -66,6 +66,9 @@ ${LIBFT}:
 ##################################################
 
 all: ${TARGET}
+
+debug: ${TARGET}
+	gcc -g main.c -o test -L. -lft_malloc
 
 clean:
 	@echo "${CLEAN} objects"
