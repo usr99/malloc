@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:25:31 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/23 01:05:16 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/24 19:59:24 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,17 +22,18 @@
 // # define m 1024
 // # define M getpagesize() * m
 
+# define MIN_ALLOC_SIZE sizeof(t_chunk)
+
 typedef struct s_chunk
 {
-	uint32_t size;
+	size_t size;
 	struct s_chunk* prev;
-	/* payload data */
 	struct s_chunk* next;
 } t_chunk;
 
 typedef struct s_arena_hdr
 {
-	uint32_t size;
+	size_t size;
 	t_chunk* root;
 } t_arena_hdr;
 
