@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/25 18:47:20 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/25 19:47:27 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,10 +17,12 @@
 #include "libft.h"
 
 #define GETCHUNKSTATE(chk)			(chk->size & 0x1)
-#define SETCHUNKSTATE(chk, state)	chk->size |= state
+#define SETCHUNKSTATE(chk, state)	chk->size ^= (GETCHUNKSTATE(chk) ^ state)
 
 #define GETCHUNKSIZE(chk)			(chk->size & (~0x1))
 #define SETCHUNKSIZE(chk, newsize)	chk->size = newsize | GETCHUNKSTATE(chk)
+
+enum e_chunk_state { FREE, IN_USE };
 
 static t_arena_hdr* arena = NULL;
 
@@ -32,25 +34,25 @@ static void set_chunk_footer(t_chunk* chk)
 }
 
 static int init_arena()
-	{
-		/* Preallocate a pool of memory */
-		arena = mmap(NULL, TINY_ARENA_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-		if (arena == MAP_FAILED)
+{
+	/* Preallocate a pool of memory */
+	arena = mmap(NULL, TINY_ARENA_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (arena == MAP_FAILED)
 		return -1;
 
-		/* Initialize first chunk */
-		t_chunk* chunk = (void*)arena + sizeof(t_arena_hdr);
+	/* Initialize first chunk */
+	t_chunk* chunk = (void*)arena + sizeof(t_arena_hdr);
 	SETCHUNKSIZE(chunk, TINY_ARENA_SIZE - sizeof(t_arena_hdr) - sizeof(size_t) * 2);
-	SETCHUNKSTATE(chunk, false);
-		chunk->prev = NULL;
-		chunk->next = NULL;
+	SETCHUNKSTATE(chunk, FREE);
+	chunk->prev = NULL;
+	chunk->next = NULL;
 	set_chunk_footer(chunk);
 
-		/* Initialize arena header */
-		arena->size = TINY_ARENA_SIZE;
-		arena->root = chunk;
+	/* Initialize arena header */
+	arena->size = TINY_ARENA_SIZE;
+	arena->root = chunk;
 	return 0;
-	}
+}
 
 static size_t check_alignment(size_t size)
 {
@@ -96,34 +98,32 @@ void* malloc(size_t size)
 			update_freelist(current, current->next, current->prev);
 		else // split the chunk to avoid wasting free memory
 		{
-		t_chunk* splitted = (void*)current + size + sizeof(size_t) * 2;
-		*splitted = *current;
+			t_chunk* splitted = (void*)current + size + sizeof(size_t) * 2;
+			*splitted = *current;
 
-		SETCHUNKSIZE(splitted, GETCHUNKSIZE(splitted) - (size + sizeof(size_t) * 2));
-		set_chunk_footer(splitted);
-		SETCHUNKSIZE(current, size);
+			SETCHUNKSIZE(splitted, GETCHUNKSIZE(splitted) - (size + sizeof(size_t) * 2));
+			set_chunk_footer(splitted);
+			SETCHUNKSIZE(current, size);
 			update_freelist(current, splitted, splitted);
 		}
 
-		SETCHUNKSTATE(current, true);
+		SETCHUNKSTATE(current, IN_USE);
 		set_chunk_footer(current);
 		return (void*)current + sizeof(size_t);
 	}
 }
 
-		/* Update logical relations between neighbours chunks */
-		if (arena->root == current)
-			arena->root = splitted;
-		if (splitted->prev)
-			splitted->prev->next = splitted;
-		if (splitted->next)
-			splitted->next->prev = splitted;
-	
-		/* Set new footer */
-		*(uint32_t*)((void*)splitted + splitted->size - sizeof(uint32_t)) = splitted->size;
-		
-		return (void*)current + sizeof(size_t);
-	}
+void free(void *ptr)
+{
+	t_chunk* freed = ptr - sizeof(size_t);
+	SETCHUNKSTATE(freed, FREE);
+	set_chunk_footer(freed);
+
+	freed->next = arena->root;
+	if (arena->root)
+		arena->root->prev = freed;
+	arena->root = freed;
+	freed->prev = NULL;
 }
 
 void show_alloc_mem()
@@ -141,14 +141,7 @@ void show_alloc_mem()
 
 			printf("8 + %s%ld%s + 8|", in_use ? "\x1b[31m" : "\x1b[32m", chunksize, "\x1b[00m"); // print size in header
 			// printf("8 + %s%ld%s + 8|", in_use ? "\x1b[31m" : "\x1b[32m", *(size_t*)((void*)chk + chunksize + sizeof(size_t)) & (~1), "\x1b[00m"); // print size in footer
-			
-			if (in_use)
-				chk = (void*)chk + chunksize + sizeof(size_t) * 2;
-			else
-{
-				free += chk->size;
-				chk = chk->next;
-			}
+			chk = (void*)chk + chunksize + sizeof(size_t) * 2;
 		}
 		printf("\nTotal: %ld bytes\n", arena->size);
 	}
