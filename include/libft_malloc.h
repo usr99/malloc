@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:25:31 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/24 19:59:24 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/25 18:48:37 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,8 @@
 // # define m 1024
 // # define M getpagesize() * m
 
-# define MIN_ALLOC_SIZE sizeof(t_chunk)
+# define MIN_ALLOC_SIZE __SIZEOF_POINTER__ * 2
+# define MIN_CHUNK_SIZE MIN_ALLOC_SIZE + sizeof(size_t) * 2
 
 typedef struct s_chunk
 {

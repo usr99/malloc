@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/23 01:18:37 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/25 18:47:20 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@
 #define GETCHUNKSIZE(chk)			(chk->size & (~0x1))
 #define SETCHUNKSIZE(chk, newsize)	chk->size = newsize | GETCHUNKSTATE(chk)
 
-t_arena_hdr* arena = NULL;
+static t_arena_hdr* arena = NULL;
 
 static void set_chunk_footer(t_chunk* chk)
 {
@@ -59,8 +59,18 @@ static size_t check_alignment(size_t size)
 
 	/* Align size on a 8-byte boundary (or 4-byte on 32-bits architecture) */
 	size = (size + 8 - 1) & ~(8 - 1);
-	size = size + size % 8;
 	return size;
+}
+
+static void update_freelist(t_chunk* current, t_chunk* next, t_chunk* previous)
+{
+	/* Update logical relations between neighbours chunks */
+	if (arena->root == current)
+		arena->root = next;
+	if (current->prev)
+		current->prev->next = next;
+	if (current->next)
+		current->next->prev = previous;
 }
 
 void* malloc(size_t size)
@@ -82,15 +92,24 @@ void* malloc(size_t size)
 		return NULL; // not implemented yet...
 	else // split chunk found to only return the requested size
 	{
+		if (GETCHUNKSIZE(current) - size < MIN_CHUNK_SIZE) // not enough space to perform chunk splitting
+			update_freelist(current, current->next, current->prev);
+		else // split the chunk to avoid wasting free memory
+		{
 		t_chunk* splitted = (void*)current + size + sizeof(size_t) * 2;
 		*splitted = *current;
 
 		SETCHUNKSIZE(splitted, GETCHUNKSIZE(splitted) - (size + sizeof(size_t) * 2));
 		set_chunk_footer(splitted);
-
 		SETCHUNKSIZE(current, size);
+			update_freelist(current, splitted, splitted);
+		}
+
 		SETCHUNKSTATE(current, true);
 		set_chunk_footer(current);
+		return (void*)current + sizeof(size_t);
+	}
+}
 
 		/* Update logical relations between neighbours chunks */
 		if (arena->root == current)
@@ -112,11 +131,10 @@ void show_alloc_mem()
 	if (arena)
 	{
 		t_chunk *chk = (void*)arena + sizeof(t_arena_hdr);
-		size_t free = 0;
 	
 		printf("8 + 8|");
 	
-		while (chk)
+		while (chk && (void*)chk < (void*)arena + arena->size)
 		{
 			size_t chunksize = GETCHUNKSIZE(chk);
 			bool in_use = GETCHUNKSTATE(chk);
