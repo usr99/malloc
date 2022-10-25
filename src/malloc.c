@@ -107,8 +107,33 @@ void* malloc(size_t size)
 	}
 }
 
-void free(void *ptr)
+void show_alloc_mem()
 {
-	if (ptr < (void*)arena + 1 || ptr > (void*)arena + arena->size)
-		abort();
+	if (arena)
+	{
+		t_chunk *chk = (void*)arena + sizeof(t_arena_hdr);
+		size_t free = 0;
+	
+		printf("8 + 8|");
+	
+		while (chk)
+		{
+			size_t chunksize = GETCHUNKSIZE(chk);
+			bool in_use = GETCHUNKSTATE(chk);
+
+			printf("8 + %s%ld%s + 8|", in_use ? "\x1b[31m" : "\x1b[32m", chunksize, "\x1b[00m"); // print size in header
+			// printf("8 + %s%ld%s + 8|", in_use ? "\x1b[31m" : "\x1b[32m", *(size_t*)((void*)chk + chunksize + sizeof(size_t)) & (~1), "\x1b[00m"); // print size in footer
+			
+			if (in_use)
+				chk = (void*)chk + chunksize + sizeof(size_t) * 2;
+			else
+{
+				free += chk->size;
+				chk = chk->next;
+			}
+		}
+		printf("\nTotal: %ld bytes\n", arena->size);
+	}
+	else
+		printf("Arena is empty\n");
 }
