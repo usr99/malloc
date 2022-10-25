@@ -103,7 +103,7 @@ void* malloc(size_t size)
 		/* Set new footer */
 		*(uint32_t*)((void*)splitted + splitted->size - sizeof(uint32_t)) = splitted->size;
 		
-		return current;
+		return (void*)current + sizeof(size_t);
 	}
 }
 
