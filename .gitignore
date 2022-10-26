@@ -3,12 +3,12 @@
 
 # Build files
 objs
+*.dSYM
 
 # Library
 libft_malloc.so
 libft_malloc_x86_64_Darwin.so
 
-# Debug
-main.c
+# Debug binaries
 test*
 a.out

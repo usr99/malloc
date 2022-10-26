@@ -6,12 +6,12 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/09/17 22:40:12 by mamartin          #+#    #+#             */
-/*   Updated: 2022/09/17 22:47:09 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/25 23:07:04 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef _UTILS_H_
-#define _UTILS_H_
+#ifndef _UTILS_LIBFT_H_
+#define _UTILS_LIBFT_H_
 
 /*
 **	SOME USEFUL FUNCTIONS

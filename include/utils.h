@@ -1,24 +1,23 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   libft_malloc.h                                     :+:      :+:    :+:   */
+/*   utils.h                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/10/20 22:25:31 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/25 22:44:02 by mamartin         ###   ########.fr       */
+/*   Created: 2022/10/25 22:52:07 by mamartin          #+#    #+#             */
+/*   Updated: 2022/10/25 22:57:41 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef _LIBFT_MALLOC_H_
-# define _LIBFT_MALLOC_H_
+#ifndef _UTILS_H_
+# define _UTILS_H_
 
-# include <stdlib.h>
-# include <stdint.h>
-
-void*	malloc(size_t size);
-void*	realloc(void *ptr, size_t size);
-void	free(void *ptr);
-void	show_alloc_mem();
+/*
+** Define some common utilities functions
+*/
+void set_chunk_footer(t_chunk* chk);
+size_t align(size_t size);
+void update_freelist(t_chunk* current, t_chunk* next, t_chunk* previous);
 
 #endif

@@ -15,7 +15,7 @@ CC		= gcc
 INC 	= -I ./include -I ./libft
 
 SRCDIR	= ./src/
-SRC		= malloc.c
+SRC		= malloc.c utils.c debug.c
 HEADERS = libft_malloc.h
 DEPS = ${addprefix include/, ${HEADERS}}
 
@@ -28,11 +28,11 @@ LIBFT	= libft/libft.a
 #			OUTPUT VARIABLES DEFINITION			 #
 ##################################################
 
-RED = \e[1;31m
-GREEN = \e[1;32m
-BLUE = \e[1;34m
-PURPLE = \e[0;35m
-RESET = \e[0;0m
+RED = \x1b[1;31m
+GREEN = \x1b[1;32m
+BLUE = \x1b[1;34m
+PURPLE = \x1b[0;35m
+RESET = \x1b[0;0m
 
 COMPILE = ${GREEN}Compiling${RESET}
 BUILD = ${BLUE}Building${RESET}
@@ -47,12 +47,12 @@ ${OBJDIR}%.o: ${SRCDIR}%.c ${DEPS}
 	@${CC} ${CFLAGS} -c $< ${INC} -o $@
 
 ${TARGET}: ${SO_LIB} ${LIBFT}
-	ln -fs ${SO_LIB} $@
+	@ln -fs ${SO_LIB} $@
+	@echo "${GREEN}$@${PURPLE} was built successfully${RESET}"
 
 ${SO_LIB}: ${OBJDIR} ${OBJS} ${LIBFT}
 	@echo "${BUILD} $@"
 	@${CC} ${LFLAGS} ${OBJS} ${LIBFT} -o $@
-	@echo "${GREEN}$@${PURPLE}was built successfully${RESET}"
 
 ${OBJDIR}:
 	@mkdir -p ${OBJDIR}
@@ -75,6 +75,8 @@ clean:
 	@rm -rf ${OBJDIR}
 	@echo "${CLEAN} libft"
 	@${MAKE} --no-print-directory clean -C libft
+	rm -rf *.dSYM test
+# do not forget to remove the above line
 
 fclean: clean
 	@echo "${CLEAN} ${TARGET}"

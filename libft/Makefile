@@ -31,11 +31,11 @@ RM = rm -rf
 #			OUTPUT VARIABLES DEFINITION			 #
 ##################################################
 
-RED = \e[1;31m
-GREEN = \e[1;32m
-BLUE = \e[1;34m
-PURPLE = \e[0;35m
-RESET = \e[0;0m
+RED = \x1b[1;31m
+GREEN = \x1b[1;32m
+BLUE = \x1b[1;34m
+PURPLE = \x1b[0;35m
+RESET = \x1b[0;0m
 
 COMPILE = ${GREEN}Compiling${RESET}
 BUILD = ${BLUE}Building${RESET}
