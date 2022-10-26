@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/25 19:47:27 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/25 22:32:41 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,11 +16,11 @@
 #include "libft_malloc.h"
 #include "libft.h"
 
-#define GETCHUNKSTATE(chk)			(chk->size & 0x1)
-#define SETCHUNKSTATE(chk, state)	chk->size ^= (GETCHUNKSTATE(chk) ^ state)
+#define GETCHUNKSTATE(size)			(size & 0x1)
+#define SETCHUNKSTATE(chk, state)	chk->size ^= (GETCHUNKSTATE(chk->size) ^ state)
 
-#define GETCHUNKSIZE(chk)			(chk->size & (~0x1))
-#define SETCHUNKSIZE(chk, newsize)	chk->size = newsize | GETCHUNKSTATE(chk)
+#define GETCHUNKSIZE(size)			(size & (~0x1))
+#define SETCHUNKSIZE(chk, newsize)	chk->size = newsize | GETCHUNKSTATE(chk->size)
 
 enum e_chunk_state { FREE, IN_USE };
 
@@ -29,7 +29,7 @@ static t_arena_hdr* arena = NULL;
 static void set_chunk_footer(t_chunk* chk)
 {
 	/* Copy chunk's header in its last bytes */
-	size_t chunksize = GETCHUNKSIZE(chk);
+	size_t chunksize = GETCHUNKSIZE(chk->size);
 	ft_memcpy((void*)chk + chunksize + sizeof(size_t), (void*)chk, sizeof(size_t));
 }
 
@@ -87,21 +87,21 @@ void* malloc(size_t size)
 
 	/* Find the first chunk of memory that can fit the request */
 	t_chunk* current = arena->root;
-	while (current && GETCHUNKSIZE(current) < size)
+	while (current && GETCHUNKSIZE(current->size) < size)
 		current = current->next;
 
 	if (!current) // none of the available chunks can satisfy the allocation request
 		return NULL; // not implemented yet...
 	else // split chunk found to only return the requested size
 	{
-		if (GETCHUNKSIZE(current) - size < MIN_CHUNK_SIZE) // not enough space to perform chunk splitting
+		if (GETCHUNKSIZE(current->size) - size < MIN_CHUNK_SIZE) // not enough space to perform chunk splitting
 			update_freelist(current, current->next, current->prev);
 		else // split the chunk to avoid wasting free memory
 		{
 			t_chunk* splitted = (void*)current + size + sizeof(size_t) * 2;
 			*splitted = *current;
 
-			SETCHUNKSIZE(splitted, GETCHUNKSIZE(splitted) - (size + sizeof(size_t) * 2));
+			SETCHUNKSIZE(splitted, GETCHUNKSIZE(splitted->size) - (size + sizeof(size_t) * 2));
 			set_chunk_footer(splitted);
 			SETCHUNKSIZE(current, size);
 			update_freelist(current, splitted, splitted);
@@ -116,14 +116,45 @@ void* malloc(size_t size)
 void free(void *ptr)
 {
 	t_chunk* freed = ptr - sizeof(size_t);
-	SETCHUNKSTATE(freed, FREE);
-	set_chunk_footer(freed);
 
-	freed->next = arena->root;
-	if (arena->root)
-		arena->root->prev = freed;
-	arena->root = freed;
-	freed->prev = NULL;
+	t_chunk* chk = (void*)freed + sizeof(size_t) * 2 + GETCHUNKSIZE(freed->size);
+	if (GETCHUNKSTATE(chk->size) == FREE)
+	{
+		SETCHUNKSIZE(freed, GETCHUNKSIZE(freed->size) + sizeof(size_t) * 2 + GETCHUNKSIZE(chk->size));
+		SETCHUNKSTATE(freed, FREE);
+		set_chunk_footer(freed);
+
+		freed->next = chk->next;
+		freed->prev = chk->prev;
+		update_freelist(chk, freed, freed);
+		if (arena->root == chk)
+			arena->root = freed;
+		if (chk->next)
+			chk->next->prev = freed;
+		if (chk->prev)
+			chk->prev->next = freed;
+	}
+
+	size_t chktag = *(size_t*)((void*)freed - sizeof(size_t));
+	if ((void*)arena + sizeof(t_arena_hdr) != freed && GETCHUNKSTATE(chktag) == FREE)
+	{
+		size_t chksize = GETCHUNKSIZE(chktag);
+		t_chunk* chk = (void*)freed - sizeof(size_t) * 2 - chksize;
+
+		SETCHUNKSIZE(chk, chksize + sizeof(size_t) * 2 + GETCHUNKSIZE(freed->size));
+		set_chunk_footer(chk);
+	}
+	else
+	{
+		SETCHUNKSTATE(freed, FREE);
+		set_chunk_footer(freed);
+
+		freed->next = arena->root;
+		if (arena->root)
+			arena->root->prev = freed;
+		arena->root = freed;
+		freed->prev = NULL;
+	}
 }
 
 void show_alloc_mem()
@@ -136,8 +167,8 @@ void show_alloc_mem()
 	
 		while (chk && (void*)chk < (void*)arena + arena->size)
 		{
-			size_t chunksize = GETCHUNKSIZE(chk);
-			bool in_use = GETCHUNKSTATE(chk);
+			size_t chunksize = GETCHUNKSIZE(chk->size);
+			bool in_use = GETCHUNKSTATE(chk->size);
 
 			printf("8 + %s%ld%s + 8|", in_use ? "\x1b[31m" : "\x1b[32m", chunksize, "\x1b[00m"); // print size in header
 			// printf("8 + %s%ld%s + 8|", in_use ? "\x1b[31m" : "\x1b[32m", *(size_t*)((void*)chk + chunksize + sizeof(size_t)) & (~1), "\x1b[00m"); // print size in footer
