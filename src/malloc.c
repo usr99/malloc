@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/25 23:06:29 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/28 17:10:38 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,40 +81,35 @@ void* malloc(size_t size)
 
 void free(void *ptr)
 {
+	if (!ptr)
+		return ;
+
 	t_chunk* freed = ptr - sizeof(size_t);
+	if (((size_t)freed & (8 - 1)) != 0)
+		return ; // pointer is not aligned on 8-bytes so this cannot be one of our chunks
 
-	t_chunk* chk = (void*)freed + sizeof(size_t) * 2 + GETCHUNKSIZE(freed->header);
+	/* Merge the next chunk if it is also free */
+	t_chunk* chk = get_next_chunk(freed);
 	if (GETCHUNKSTATE(chk->header) == FREE)
+		merge_chunks(freed, chk, true);
+
+	/* Also perform the merge with previous chunk if necessary */
+	chk = get_previous_chunk(freed);
+	if (chk && GETCHUNKSTATE(chk->header) == FREE)
 	{
-		SETCHUNKSIZE(freed, GETCHUNKSIZE(freed->header) + sizeof(size_t) * 2 + GETCHUNKSIZE(chk->header));
-		SETCHUNKSTATE(freed, FREE);
-		set_chunk_footer(freed);
-
-		freed->next = chk->next;
-		freed->prev = chk->prev;
-		update_freelist(chk, freed, freed);
-		if (g_arena->root == chk)
-			g_arena->root = freed;
-		if (chk->next)
-			chk->next->prev = freed;
-		if (chk->prev)
-			chk->prev->next = freed;
-	}
-
-	size_t chktag = *(size_t*)((void*)freed - sizeof(size_t));
-	if ((void*)g_arena + sizeof(t_arena_hdr) != freed && GETCHUNKSTATE(chktag) == FREE)
-	{
-		size_t chksize = GETCHUNKSIZE(chktag);
-		t_chunk* chk = (void*)freed - sizeof(size_t) * 2 - chksize;
-
-		SETCHUNKSIZE(chk, chksize + sizeof(size_t) * 2 + GETCHUNKSIZE(freed->header));
-		set_chunk_footer(chk);
+		/*
+		** Since we merge the newly freed chunk into an existing one
+		** no need to update pointers between chunks
+		*/
+		merge_chunks(chk, freed, false);
 	}
 	else
 	{
+		/* Set chunk as free */
 		SETCHUNKSTATE(freed, FREE);
 		set_chunk_footer(freed);
 
+		/* Insert freed chunk at the beginning of the freelist */
 		freed->next = g_arena->root;
 		if (g_arena->root)
 			g_arena->root->prev = freed;

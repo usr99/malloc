@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:42:33 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/25 23:01:27 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/28 16:46:43 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@
 # define MIN_CHUNK_SIZE MIN_ALLOC_SIZE + sizeof(size_t) * 2
 
 /*
-** Useful macros to access header fields
+** Useful macros to manage memory chunks
 */
 #define GETCHUNKSTATE(header)		(header & 0x1)
 #define GETCHUNKSIZE(header)		(header & (~0x1))
