@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:42:33 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/28 16:46:43 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/28 21:34:30 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,16 +16,24 @@
 # include <stdlib.h>
 
 /*
+** Alignment-related macros
+*/
+# define IS_ALIGNED(size, boundary) (((size_t)size & (boundary - 1)) == 0)
+# define ALIGN(size, boundary) ((size + boundary - 1) & ~(boundary - 1))
+
+/*
 ** Implementation specific definitions
 */
 # define TINY_MAX_ALLOC 256
-# define TINY_ARENA_SIZE getpagesize() * TINY_MAX_ALLOC
+# define TINY_ARENA_SIZE ALIGN(100 * (TINY_MAX_ALLOC + sizeof(size_t) * 2), getpagesize())
 
-// # define m 1024
-// # define M getpagesize() * m
+# define SMALL_MAX_ALLOC 1024
+# define SMALL_ARENA_SIZE ALIGN(100 * (SMALL_MAX_ALLOC + sizeof(size_t) * 2), getpagesize())
 
 # define MIN_ALLOC_SIZE __SIZEOF_POINTER__ * 2
 # define MIN_CHUNK_SIZE MIN_ALLOC_SIZE + sizeof(size_t) * 2
+
+typedef enum e_arena_index { TINY_ARENA, SMALL_ARENA, LARGE_ARENA } t_arena_index;
 
 /*
 ** Useful macros to manage memory chunks

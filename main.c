@@ -6,10 +6,11 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:25:09 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/25 23:01:34 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/29 00:32:27 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <unistd.h>
 #include <stdio.h>
 #include "include/libft_malloc.h"
 #include "include/mem_allocator.h"
@@ -18,18 +19,25 @@ int main()
 {
 	int* p1 = malloc(192);
 	int* p2 = malloc(16);
-	int* p3 = malloc(1024);
+	int* p3 = malloc(1000);
 	int* p4 = malloc(24);
 	int* p5 = malloc(128);
 	int* p6 = malloc(256);
-	// int* p7 = malloc(1046777);
+	int* p7 = malloc(572);
+	int* p8 = malloc(844);
+	int* p9 = malloc(300);
 
-	// free(p3);
 	// free(p4);
 	// free(p5);
-	free(p2);
+	// free(p2);
 	// free(p6);
-	free(p1);
+	// free(p1);
+	// free(p4);
+	// free(p2);
+	free(p3);
+	free(p9);
+	free(p7);
+	free(p8);
 
 	// p2 = malloc(16);
 	// p3 = malloc(1024);
