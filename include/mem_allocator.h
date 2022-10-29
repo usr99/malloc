@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:42:33 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/28 21:34:30 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/29 01:08:41 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,6 +52,12 @@ typedef struct s_chunk
 	struct s_chunk* prev;
 	struct s_chunk* next;
 } t_chunk;
+
+typedef struct s_large_chunk
+{
+	size_t size;
+	struct s_large_chunk* next;
+} t_large_chunk;
 
 typedef struct s_arena_hdr
 {

@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/28 21:34:39 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/29 01:15:19 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,8 +53,24 @@ void* malloc(size_t size)
 	t_arena_index aridx = choose_arena(size);
 	if (aridx == LARGE_ARENA)
 	{
-		// not implemented yet...
-		return NULL;
+		size_t allocated = ALIGN(size + sizeof(t_large_chunk), getpagesize());
+		t_large_chunk* new = mmap(NULL, allocated, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		if (new == MAP_FAILED)
+			return NULL;
+
+		new->size = allocated - sizeof(t_large_chunk);
+		new->next = NULL;
+
+		if (!g_arenas[LARGE_ARENA])
+			g_arenas[LARGE_ARENA] = (void*)new;
+		else
+		{
+			t_large_chunk* chk = (void*)g_arenas[LARGE_ARENA];
+			while (chk->next)
+				chk = chk->next;
+			chk->next = new;
+		}
+		return (void *)new + sizeof(t_large_chunk);
 	}
 	else
 	{

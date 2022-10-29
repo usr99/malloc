@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:45:15 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/28 20:42:44 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/10/29 01:13:58 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ void print_memory_diagram()
 	static const char* arena_names[3] = { "TINY", "SMALL", "LARGE" };
 	enum e_arena_index i;
 
-	for (i = TINY_ARENA; i <= LARGE_ARENA; i++)
+	for (i = TINY_ARENA; i < LARGE_ARENA; i++)
 	{
 		if (g_arenas[i])
 		{
@@ -44,4 +44,19 @@ void print_memory_diagram()
 		else
 			printf("%s arena is empty\n", arena_names[i]);
 	}
+
+	if (!g_arenas[LARGE_ARENA])
+		return ;
+
+	size_t total = 0;
+	t_large_chunk *chk = (void *)g_arenas[LARGE_ARENA];
+	printf("%s:\n", arena_names[LARGE_ARENA]);
+	while (chk)
+	{
+		printf("16 + %s%ld%s|", "\x1b[31m", chk->size, "\x1b[00m"); // print size in header
+		
+		total += chk->size + sizeof(t_large_chunk);
+		chk = chk->next;
+	}
+	printf("\nTotal: %ld bytes\n", total);
 }
