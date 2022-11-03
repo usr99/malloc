@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:25:09 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/29 01:22:40 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/02 21:07:07 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,15 +17,18 @@
 
 int main()
 {
-	int* p1 = malloc(1024);
-	int* p2 = malloc(2048);
-	int* p3 = malloc(4081);
-	int* p4 = malloc(5000);
-	int* p5 = malloc(128);
-	int* p6 = malloc(256);
-	int* p7 = malloc(572);
-	int* p8 = malloc(844);
-	int* p9 = malloc(300);
+	int* p1 = malloc(2048);
+	int* p2 = malloc(4081);
+	int* p3 = malloc(5000);
+	int* p4 = malloc(1025);
+	// int* p5 = malloc(128);
+	// int* p6 = malloc(256);
+	// int* p7 = malloc(572);
+	// int* p8 = malloc(844);
+	// int* p9 = malloc(300);
+
+	free(p2);
+	// free(p3);
 
 	// free(p4);
 	// free(p5);
