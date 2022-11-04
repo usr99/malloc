@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/02 21:14:35 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/04 19:11:08 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
 #include "mem_allocator.h"
 #include "utils.h"
 
-t_arena_hdr* g_arenas[3] = {0};
+void* g_arenas[3] = { NULL };
 
 static int init_arena(t_arena_index aridx)
 {
@@ -30,17 +30,13 @@ static int init_arena(t_arena_index aridx)
 	if (g_arenas[aridx] == MAP_FAILED)
 		return -1;
 
-	/* Initialize first chunk */
-	t_chunk* chunk = (void*)g_arenas[aridx] + sizeof(t_arena_hdr);
-	SETCHUNKSIZE(chunk, size - sizeof(t_arena_hdr) - sizeof(size_t) * 2);
-	SETCHUNKSTATE(chunk, FREE);
-	chunk->prev = NULL;
+	/* Initialize wilderness chunk */
+	t_chunk* chunk = g_arenas[aridx];
+	SETSIZE(chunk, size - CHUNK_OVERHEAD);
 	chunk->next = NULL;
+	chunk->prev = NULL;
 	set_chunk_footer(chunk);
 
-	/* Initialize g_arena header */
-	g_arenas[aridx]->size = size;
-	g_arenas[aridx]->root = chunk;
 	return 0;
 }
 
@@ -58,18 +54,16 @@ void* malloc(size_t size)
 		if (new == MAP_FAILED)
 			return NULL;
 
-		new->size = allocated - sizeof(t_large_chunk);
+		SETSIZE(new, allocated - sizeof(t_large_chunk));
 		new->next = NULL;
+		new->prev = NULL;
 
-		if (!g_arenas[LARGE_ARENA])
-			g_arenas[LARGE_ARENA] = (void*)new;
-		else
+		if (g_arenas[LARGE_ARENA])
 		{
-			t_large_chunk* chk = (void*)g_arenas[LARGE_ARENA];
-			while (chk->next)
-				chk = chk->next;
-			chk->next = new;
+			new->next = g_arenas[LARGE_ARENA];
+			((t_large_chunk*)g_arenas[LARGE_ARENA])->prev = new;
 		}
+		g_arenas[LARGE_ARENA] = new;
 		return (void *)new + sizeof(t_large_chunk);
 	}
 	else
@@ -77,31 +71,34 @@ void* malloc(size_t size)
 		/* Initialize arena if empty */
 		if (!g_arenas[aridx] && init_arena(aridx) == -1)
 			return NULL;
-		t_arena_hdr* arena = g_arenas[aridx];
 
 		/* Find the first chunk of memory that can fit the request */
-		t_chunk *current = arena->root;
-		while (current && GETCHUNKSIZE(current->header) < size)
+		t_chunk* current = g_arenas[aridx];
+		while (current && GETSIZE(current->header) < size)
 			current = current->next;
 
 		if (!current) // none of the available chunks can satisfy the allocation request
 			return NULL; // not implemented yet...
 		else // split chunk found to only return the requested size
 		{
-			if (GETCHUNKSIZE(current->header) - size < MIN_CHUNK_SIZE) // not enough space to perform chunk splitting
+			t_chunk** arena = (t_chunk**)&g_arenas[aridx];
+			if (GETSIZE(current->header) - size < MIN_CHUNK_SIZE) // not enough space to perform chunk splitting
 				update_freelist(arena, current, current->next, current->prev);
 			else // split the chunk to avoid wasting free memory
 			{
-				t_chunk *splitted = (void *)current + size + sizeof(size_t) * 2;
+				t_chunk *splitted = (void *)current + size + CHUNK_OVERHEAD;
 				*splitted = *current;
 
-				SETCHUNKSIZE(splitted, GETCHUNKSIZE(splitted->header) - (size + sizeof(size_t) * 2));
+				SETSIZE(splitted, GETSIZE(splitted->header) - (size + CHUNK_OVERHEAD));
+				SETSTATE(splitted, LEFT_CHUNK);
 				set_chunk_footer(splitted);
-				SETCHUNKSIZE(current, size);
+				
+				SETSIZE(current, size);
+				SETSTATE(current, RIGHT_CHUNK);
 				update_freelist(arena, current, splitted, splitted);
 			}
 
-			SETCHUNKSTATE(current, IN_USE);
+			SETSTATE(current, IN_USE);
 			set_chunk_footer(current);
 			return (void *)current + sizeof(size_t);
 		}
@@ -117,51 +114,46 @@ void free(void *ptr)
 	if (!IS_ALIGNED(freed, __SIZEOF_POINTER__))
 		return ; // pointer is not aligned on 8-bytes so this cannot be one of our chunks
 
-	t_arena_index idx = choose_arena(GETCHUNKSIZE(freed->header));
-	if (idx == LARGE_ARENA)
+	t_arena_index aridx = choose_arena(GETSIZE(freed->header));
+	if (aridx == LARGE_ARENA)
 	{
-		t_large_chunk* tmp = (t_large_chunk*)g_arenas[LARGE_ARENA];
-		t_large_chunk* chk = ptr - sizeof(t_large_chunk);
+		t_large_chunk* chk = ptr - sizeof(t_chunk);
+		// update_freelist(arena, chk, chk->next, chk->prev);
 
-		while (tmp && tmp->next != chk)
-			tmp = tmp->next;
-		if (!tmp)
-			return ;
-		tmp->next = chk->next;
+		if (g_arenas[aridx] == chk)
+			g_arenas[aridx] = chk->next;
+		if (chk->prev)
+			chk->prev->next = chk->next;
+		if (chk->next)
+			chk->next->prev = chk->prev;
 
-		if (munmap(chk, chk->size + sizeof(t_large_chunk)) == -1)
+		if (munmap(chk, GETSIZE(chk->header) + sizeof(t_large_chunk)) == -1)
 			perror("munmap");
 	}
 	else
 	{
-		t_arena_hdr *arena = g_arenas[idx];
-
+		t_chunk** arena = (t_chunk**)&g_arenas[aridx];
+		
 		/* Merge the next chunk if it is also free */
-		t_chunk *chk = get_next_chunk(freed);
-		if (GETCHUNKSTATE(chk->header) == FREE)
-			merge_chunks(arena, freed, chk, true);
+		t_chunk *chk = get_near_chunk(freed, RIGHT_CHUNK);
+		if (chk && !(chk->header & IN_USE))
+			merge_chunks(arena, freed, chk, RIGHT_CHUNK);
 
 		/* Also perform the merge with previous chunk if necessary */
-		chk = get_previous_chunk(arena, freed);
-		if (chk && GETCHUNKSTATE(chk->header) == FREE)
-		{
-			/*
-			** Since we merge the newly freed chunk into an existing one
-			** no need to update pointers between chunks
-			*/
-			merge_chunks(arena, chk, freed, false);
-		}
+		chk = get_near_chunk(freed, LEFT_CHUNK);
+		if (chk && !(chk->header & IN_USE))
+			merge_chunks(arena, chk, freed, LEFT_CHUNK);
 		else
 		{
 			/* Set chunk as free */
-			SETCHUNKSTATE(freed, FREE);
+			CLEARSTATE(freed, IN_USE);
 			set_chunk_footer(freed);
 
 			/* Insert freed chunk at the beginning of the freelist */
-			freed->next = arena->root;
-			if (arena->root)
-				arena->root->prev = freed;
-			arena->root = freed;
+			freed->next = g_arenas[aridx];
+			if (g_arenas[aridx])
+				((t_chunk*)g_arenas[aridx])->prev = freed;
+			g_arenas[aridx] = freed;
 			freed->prev = NULL;
 		}
 	}

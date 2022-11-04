@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:52:32 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/28 21:31:43 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/04 19:05:12 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "libft.h"
 
-extern t_arena_hdr* g_arenas[3];
+extern void* g_arenas[3];
 
 size_t align(size_t size)
 {
@@ -29,7 +29,7 @@ size_t align(size_t size)
 void set_chunk_footer(t_chunk* chk)
 {
 	/* Copy chunk's header in its last bytes */
-	size_t chunksize = GETCHUNKSIZE(chk->header);
+	size_t chunksize = GETSIZE(chk->header);
 	ft_memcpy((void*)chk + chunksize + sizeof(size_t), (void*)chk, sizeof(size_t));
 }
 
@@ -38,41 +38,47 @@ t_arena_index choose_arena(size_t size)
 	return (size > SMALL_MAX_ALLOC) ? LARGE_ARENA : ((size > TINY_MAX_ALLOC) ? SMALL_ARENA : TINY_ARENA);
 }
 
-void update_freelist(t_arena_hdr* arena, t_chunk* current, t_chunk* next, t_chunk* previous)
+void update_freelist(t_chunk** arena, t_chunk* current, t_chunk* next, t_chunk* previous)
 {
 	/* Update logical relations between neighbours chunks */
-	if (arena->root == current)
-		arena->root = next;
+	if (*arena == current)
+		*arena = next;
 	if (current->prev)
 		current->prev->next = next;
 	if (current->next)
 		current->next->prev = previous;
 }
 
-t_chunk* get_next_chunk(t_chunk* current)
+t_chunk* get_near_chunk(t_chunk* current, t_chunk_state side)
 {
-	return (void*)current + sizeof(size_t) * 2 + GETCHUNKSIZE(current->header);
+	if (current->header & side)
+	{
+		if (side == LEFT_CHUNK)
+		{
+			size_t *footer = (void*)current - sizeof(size_t);
+			return (void*)current - CHUNK_OVERHEAD - GETSIZE(*footer);
+		}
+		else
+			return (void*)current + CHUNK_OVERHEAD + GETSIZE(current->header);
+	}
+	else
+		return NULL;
 }
 
-t_chunk* get_previous_chunk(t_arena_hdr* arena, t_chunk* current)
-{
-	if ((void*)arena + sizeof(t_arena_hdr) == current)
-		return NULL; // current chunk is at the beginning of arena, thus there is no "previous" chunk
-
-	size_t prev_footer = *(size_t*)((void*)current - sizeof(size_t));
-	return (void*)current - sizeof(size_t) * 2 - GETCHUNKSIZE(prev_footer);
-}
-
-void merge_chunks(t_arena_hdr* arena, t_chunk* dest, t_chunk* src, bool update_links)
+void merge_chunks(t_chunk** arena, t_chunk* dest, t_chunk* src, t_chunk_state direction)
 {
 	/* Update destination size */
-	SETCHUNKSIZE(dest, GETCHUNKSIZE(dest->header) + sizeof(size_t) * 2 + GETCHUNKSIZE(src->header));
-	SETCHUNKSTATE(dest, FREE);
+	SETSIZE(dest, GETSIZE(dest->header) + CHUNK_OVERHEAD + GETSIZE(src->header));
+	CLEARSTATE(dest, IN_USE);
+	COPYSTATE(dest, src, RIGHT_CHUNK);
 	set_chunk_footer(dest);
 
-	if (update_links)
+	if (direction == RIGHT_CHUNK)
 	{
-		/* Update logical links between free chunks */
+		/*
+		** Since the newly freed chunk is the destination for the merge
+		** we need to update pointers
+		*/
 		dest->next = src->next;
 		dest->prev = src->prev;
 		update_freelist(arena, src, dest, dest);
