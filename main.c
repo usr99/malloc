@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:25:09 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/04 21:44:21 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/04 22:10:20 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 
 int main()
 {
-	// int* p1 = malloc(256);
+	// int* p1 = malloc(80);
 	// int* p2 = malloc(256);
 	// int* p3 = malloc(256);
 	// int* p6 = malloc(256);

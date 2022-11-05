@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/04 22:00:08 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/04 22:09:08 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -186,11 +186,14 @@ void free(void *ptr)
 			freed->prev = NULL;
 		}
 
-		// size_t init_sz = (aridx == TINY_ARENA) ? TINY_ARENA_SIZE : SMALL_ARENA_SIZE;
-		// size_t chunk_sz = GETSIZE(freed->header);
-		// if (chunk_sz - init_sz > getpagesize())
-		// {
-			// 
-		// }
+		/* Unmap an arena if it is now empty */
+		size_t init_sz = (aridx == TINY_ARENA) ? TINY_ARENA_SIZE : SMALL_ARENA_SIZE;
+		size_t chunk_sz = GETSIZE(freed->header);
+		if (chunk_sz == init_sz - CHUNK_OVERHEAD)
+		{
+			update_freelist(arena, freed, freed->next, freed->prev);
+			if (munmap(freed, chunk_sz + CHUNK_OVERHEAD) == -1)
+				perror("munmap");
+		}
 	}
 }
