@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/05 18:02:36 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/05 18:31:50 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,22 +21,50 @@
 
 t_mem_tracker g_memory = {0};
 
-static t_chunk* allocate_arena(t_arena_index aridx)
+static void* allocate_arena(t_arena_index aridx, size_t size)
 {
-	size_t size = (aridx == TINY) ? TINY_ARENA_SIZE : SMALL_ARENA_SIZE;
-
-	/* Preallocate a pool of memory */
-	t_chunk* arena = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-	if (arena == MAP_FAILED)
+	if (aridx != LARGE) // for LARGE allocs size is defined by the corresponding argument
+		size = (aridx == TINY) ? TINY_ARENA_SIZE : SMALL_ARENA_SIZE;
+	
+	/* Check that enough memory is available in the virtual address space to avoid being killed by the OS */
+	if (!memory_available(g_memory.total_mem_usage + size))
 		return NULL;
 
-	/* Initialize wilderness chunk */
-	SETSIZE(arena, size - CHUNK_OVERHEAD);
-	arena->next = NULL;
-	arena->prev = NULL;
-	set_chunk_footer(arena);
+	/* Preallocate a pool of memory */
+	void* arena = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (arena == MAP_FAILED)
+		return NULL;
+	g_memory.total_mem_usage += size;
+	ft_memset(arena, 0, sizeof(t_chunk));
 
+	if (aridx == LARGE)
+	{
+		t_large_chunk* ar = arena;
+
+		/* Initialize chunk and insert it at the beginning of the list */
+		SETSIZE(ar, size - sizeof(t_large_chunk));
+		if (g_memory.arenas[LARGE])
+		{
+			ar->next = g_memory.arenas[LARGE];
+			((t_large_chunk*)g_memory.arenas[LARGE])->prev = ar;
+		}
+		g_memory.arenas[LARGE] = ar;
+	}
+	else
+	{
+		t_chunk* ar = arena;
+
+		/* Initialize wilderness chunk */
+		SETSIZE(ar, size - CHUNK_OVERHEAD);
+		set_chunk_footer(ar);
+	}
 	return arena;
+}
+
+static void unmap_arena(void* ptr, size_t size)
+{
+	if (munmap(ptr, size) == 0)
+		g_memory.total_mem_usage -= size;
 }
 
 void* malloc(size_t size)
@@ -49,26 +77,16 @@ void* malloc(size_t size)
 	if (aridx == LARGE)
 	{
 		size_t allocated = ALIGN(size + sizeof(t_large_chunk), getpagesize());
-		t_large_chunk* new = mmap(NULL, allocated, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-		if (new == MAP_FAILED)
+		t_large_chunk* new = allocate_arena(LARGE, allocated);
+		
+		if (!new)
 			return NULL;
-
-		SETSIZE(new, allocated - sizeof(t_large_chunk));
-		new->next = NULL;
-		new->prev = NULL;
-
-		if (g_memory.arenas[LARGE])
-		{
-			new->next = g_memory.arenas[LARGE];
-			((t_large_chunk*)g_memory.arenas[LARGE])->prev = new;
-		}
-		g_memory.arenas[LARGE] = new;
 		return (void *)new + sizeof(t_large_chunk);
 	}
 	else
 	{
 		/* Initialize arena if empty */
-		if (!g_memory.arenas[aridx] && !(g_memory.arenas[aridx] = allocate_arena(aridx)))
+		if (!g_memory.arenas[aridx] && !(g_memory.arenas[aridx] = allocate_arena(aridx, 0)))
 			return NULL;
 
 		/* Find the first chunk of memory that can fit the request */
@@ -78,7 +96,7 @@ void* malloc(size_t size)
 
 		if (!current) // none of the available chunks can satisfy the allocation request
 		{
-			t_chunk* extension = allocate_arena(aridx);
+			t_chunk* extension = allocate_arena(aridx, 0);
 			if (!extension)
 				return NULL;
 			t_chunk** arena = (t_chunk**)&g_memory.arenas[aridx];
@@ -123,6 +141,7 @@ void free(void *ptr)
 	t_arena_index aridx = choose_arena(GETSIZE(freed->header));
 	if (aridx == LARGE)
 	{
+		/* Remove the chunk from the list */
 		t_large_chunk* chk = ptr - sizeof(t_chunk);
 		if (g_memory.arenas[aridx] == chk)
 			g_memory.arenas[aridx] = chk->next;
@@ -130,8 +149,9 @@ void free(void *ptr)
 			chk->prev->next = chk->next;
 		if (chk->next)
 			chk->next->prev = chk->prev;
-		if (munmap(chk, GETSIZE(chk->header) + sizeof(t_large_chunk)) == -1)
-			perror("munmap");
+		
+		/* Release memory */
+		unmap_arena(chk, GETSIZE(chk->header) + sizeof(t_large_chunk));
 	}
 	else
 	{
@@ -175,8 +195,7 @@ void free(void *ptr)
 		if (chunk_sz == init_sz - CHUNK_OVERHEAD)
 		{
 			update_freelist(arena, freed, freed->next, freed->prev);
-			if (munmap(freed, chunk_sz + CHUNK_OVERHEAD) == -1)
-				perror("munmap");
+			unmap_arena(freed, chunk_sz + CHUNK_OVERHEAD);
 		}
 	}
 }

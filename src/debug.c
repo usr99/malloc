@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:45:15 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/05 17:22:50 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/05 18:32:28 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,4 +62,6 @@ void print_memory_diagram()
 	}
 	else
 		printf("%s arena is empty\n", arena_names[i]);
+
+	printf("TOTAL: %ld\n", g_memory.total_mem_usage);
 }

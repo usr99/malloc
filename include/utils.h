@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:52:07 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/04 16:23:47 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/05 18:15:25 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,5 +25,6 @@ t_arena_index choose_arena(size_t size);
 void update_freelist(t_chunk** arena, t_chunk* current, t_chunk* next, t_chunk* previous);
 t_chunk* get_near_chunk(t_chunk* current, t_chunk_state side);
 void merge_chunks(t_chunk** arena, t_chunk* dest, t_chunk* src, t_chunk_state direction);
+bool memory_available(size_t total_usage);
 
 #endif

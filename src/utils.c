@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:52:32 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/05 17:23:06 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/05 18:18:01 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,4 +80,13 @@ void merge_chunks(t_chunk** arena, t_chunk* dest, t_chunk* src, t_chunk_state di
 		dest->prev = src->prev;
 		update_freelist(arena, src, dest, dest);
 	}
+}
+
+bool memory_available(size_t total_usage)
+{
+	struct rlimit rlp;
+
+	if (getrlimit(RLIMIT_AS, &rlp) == -1)
+		return false;
+	return (total_usage < rlp.rlim_cur);
 }
