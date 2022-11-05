@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/04 22:09:08 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/05 18:02:36 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,11 +19,11 @@
 #include "mem_allocator.h"
 #include "utils.h"
 
-void* g_arenas[3] = { NULL };
+t_mem_tracker g_memory = {0};
 
 static t_chunk* allocate_arena(t_arena_index aridx)
 {
-	size_t size = (aridx == TINY_ARENA) ? TINY_ARENA_SIZE : SMALL_ARENA_SIZE;
+	size_t size = (aridx == TINY) ? TINY_ARENA_SIZE : SMALL_ARENA_SIZE;
 
 	/* Preallocate a pool of memory */
 	t_chunk* arena = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -46,7 +46,7 @@ void* malloc(size_t size)
 	size = align(size);
 	
 	t_arena_index aridx = choose_arena(size);
-	if (aridx == LARGE_ARENA)
+	if (aridx == LARGE)
 	{
 		size_t allocated = ALIGN(size + sizeof(t_large_chunk), getpagesize());
 		t_large_chunk* new = mmap(NULL, allocated, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -57,22 +57,22 @@ void* malloc(size_t size)
 		new->next = NULL;
 		new->prev = NULL;
 
-		if (g_arenas[LARGE_ARENA])
+		if (g_memory.arenas[LARGE])
 		{
-			new->next = g_arenas[LARGE_ARENA];
-			((t_large_chunk*)g_arenas[LARGE_ARENA])->prev = new;
+			new->next = g_memory.arenas[LARGE];
+			((t_large_chunk*)g_memory.arenas[LARGE])->prev = new;
 		}
-		g_arenas[LARGE_ARENA] = new;
+		g_memory.arenas[LARGE] = new;
 		return (void *)new + sizeof(t_large_chunk);
 	}
 	else
 	{
 		/* Initialize arena if empty */
-		if (!g_arenas[aridx] && !(g_arenas[aridx] = allocate_arena(aridx)))
+		if (!g_memory.arenas[aridx] && !(g_memory.arenas[aridx] = allocate_arena(aridx)))
 			return NULL;
 
 		/* Find the first chunk of memory that can fit the request */
-		t_chunk* current = g_arenas[aridx];
+		t_chunk* current = g_memory.arenas[aridx];
 		while (current && GETSIZE(current->header) < size)
 			current = current->next;
 
@@ -81,14 +81,14 @@ void* malloc(size_t size)
 			t_chunk* extension = allocate_arena(aridx);
 			if (!extension)
 				return NULL;
-			// t_chunk* arena = g_arenas[aridx];
-			extension->next = g_arenas[aridx];
-			((t_chunk*)g_arenas[aridx])->prev = extension;
-			g_arenas[aridx] = extension;
+			t_chunk** arena = (t_chunk**)&g_memory.arenas[aridx];
+			extension->next = *arena;
+			(*arena)->prev = extension;
+			*arena = extension;
 			current = extension;
 		}
 
-		t_chunk **arena = (t_chunk **)&g_arenas[aridx];
+		t_chunk **arena = (t_chunk **)&g_memory.arenas[aridx];
 		if (GETSIZE(current->header) - size < MIN_CHUNK_SIZE) // not enough space to perform chunk splitting
 			update_freelist(arena, current, current->next, current->prev);
 		else // split the chunk to avoid wasting free memory
@@ -121,11 +121,11 @@ void free(void *ptr)
 		return ;
 
 	t_arena_index aridx = choose_arena(GETSIZE(freed->header));
-	if (aridx == LARGE_ARENA)
+	if (aridx == LARGE)
 	{
 		t_large_chunk* chk = ptr - sizeof(t_chunk);
-		if (g_arenas[aridx] == chk)
-			g_arenas[aridx] = chk->next;
+		if (g_memory.arenas[aridx] == chk)
+			g_memory.arenas[aridx] = chk->next;
 		if (chk->prev)
 			chk->prev->next = chk->next;
 		if (chk->next)
@@ -135,7 +135,7 @@ void free(void *ptr)
 	}
 	else
 	{
-		t_chunk** arena = (t_chunk**)&g_arenas[aridx];
+		t_chunk** arena = (t_chunk**)&g_memory.arenas[aridx];
 		bool merged = false;
 
 		/* Set chunk as free */
@@ -156,38 +156,21 @@ void free(void *ptr)
 		{
 			merge_chunks(arena, chk, freed, LEFT_CHUNK);
 			if (merged)
-			{
-				if (freed->next == chk->prev)
-				{
-					/* Handle special case to avoid the list to become circular */
-					if (*arena == freed)
-						*arena = chk;
-					chk->prev->prev = chk;
-					chk->prev->next = NULL;
-					chk->next = chk->prev;
-					chk->prev = NULL;
-				}
-				else
-				{
-					chk->next = freed->next;
-					if (freed->next)
-						freed->next->prev = chk;
-				}
-			}
+				update_freelist(arena, freed, freed->next, freed->prev);
 			freed = chk;
 		}
 		else if (!merged)
 		{
 			/* Insert freed chunk at the beginning of the freelist */
-			freed->next = g_arenas[aridx];
-			if (g_arenas[aridx])
-				((t_chunk*)g_arenas[aridx])->prev = freed;
-			g_arenas[aridx] = freed;
+			freed->next = *arena;
+			if (*arena)
+				(*arena)->prev = freed;
+			*arena = freed;
 			freed->prev = NULL;
 		}
 
 		/* Unmap an arena if it is now empty */
-		size_t init_sz = (aridx == TINY_ARENA) ? TINY_ARENA_SIZE : SMALL_ARENA_SIZE;
+		size_t init_sz = (aridx == TINY) ? TINY_ARENA_SIZE : SMALL_ARENA_SIZE;
 		size_t chunk_sz = GETSIZE(freed->header);
 		if (chunk_sz == init_sz - CHUNK_OVERHEAD)
 		{
@@ -197,3 +180,27 @@ void free(void *ptr)
 		}
 	}
 }
+
+#if 0
+void *realloc(void *ptr, size_t size)
+{
+/*
+	if ptr == NULL
+		return malloc(size)
+	else if size == 0
+		return ???
+
+	if ptr & RIGHT_CHUNK
+		if !(right_chunk & IN_USE)
+			make the current chunk bigger
+		else
+			new = malloc(size)
+			copy(ptr, new)
+			free(ptr)
+	else
+		new = malloc(size)
+		copy(ptr, new)
+		free(ptr)
+*/
+}
+#endif

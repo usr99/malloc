@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:42:33 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/04 19:11:40 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/05 17:19:40 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,8 +34,6 @@
 # define SMALL_MAX_ALLOC 1024
 # define SMALL_ARENA_SIZE ALIGN(100 * (SMALL_MAX_ALLOC + CHUNK_OVERHEAD), getpagesize())
 
-typedef enum e_arena_index { TINY_ARENA, SMALL_ARENA, LARGE_ARENA } t_arena_index;
-
 /*
 ** Memory chunks implementation
 */
@@ -46,6 +44,23 @@ typedef enum e_arena_index { TINY_ARENA, SMALL_ARENA, LARGE_ARENA } t_arena_inde
 #define SETSTATE(chk, state)		chk->header |= state
 #define CLEARSTATE(chk, state)		chk->header &= ~state
 #define COPYSTATE(dest, src, state) if (src->header & state) SETSTATE(dest, state); else CLEARSTATE(dest, state)
+
+typedef enum e_arena_index { TINY, SMALL, LARGE } t_arena_index;
+
+typedef struct s_alloc_history
+{
+	size_t alloc_time;
+	size_t free_time;
+	size_t size;
+	void* address;
+} t_alloc_history;
+
+typedef struct s_mem_tracker
+{
+	void* arenas[3];
+	size_t total_mem_usage;
+	t_alloc_history* history;
+} t_mem_tracker;
 
 typedef enum e_chunk_states
 {

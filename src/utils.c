@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:52:32 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/04 21:17:21 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/05 17:23:06 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,6 @@
 
 #include "utils.h"
 #include "libft.h"
-
-extern void* g_arenas[3];
 
 size_t align(size_t size)
 {
@@ -35,7 +33,7 @@ void set_chunk_footer(t_chunk* chk)
 
 t_arena_index choose_arena(size_t size)
 {
-	return (size > SMALL_MAX_ALLOC) ? LARGE_ARENA : ((size > TINY_MAX_ALLOC) ? SMALL_ARENA : TINY_ARENA);
+	return (size > SMALL_MAX_ALLOC) ? LARGE : ((size > TINY_MAX_ALLOC) ? SMALL : TINY);
 }
 
 void update_freelist(t_chunk** arena, t_chunk* current, t_chunk* next, t_chunk* previous)
