@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:25:09 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/04 19:14:15 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/04 21:44:21 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,17 +18,33 @@
 
 int main()
 {
-	int* p1 = malloc(2048);
-	int* p2 = malloc(4096);
-	int* p3 = malloc(8192);
+	// int* p1 = malloc(256);
+	// int* p2 = malloc(256);
+	// int* p3 = malloc(256);
 	// int* p6 = malloc(256);
 	// int* p7 = malloc(64);
 	// int* p8 = malloc(121);
 	// int* p9 = malloc(300);
 
-	free(p1);
-	free(p2);
-	free(p3);
+	int i;
+	char* q = malloc(80);
+	char* t[297];
+	for (i = 0; i < 297; i++)
+		t[i] = malloc(80);
+	int* p1 = malloc(48);
+	free(q);
+
+	int* p2 = malloc(104);
+	free(p2); // free first of arena 2
+
+	for (i = 0; i < 296; i++)
+		free(t[i]);
+	free(t[296]);
+	free(p1); // free last of first arena 1
+
+	// free(p1);
+	// free(p3);
+	// free(p2);
 	// free(p4);
 	// free(p5);
 	// free(p6);

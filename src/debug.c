@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:45:15 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/04 19:14:06 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/04 20:03:27 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,11 +32,11 @@ void print_memory_diagram()
 
 			printf("%s:\n", arena_names[i]);
 
-			while (chk->header & LEFT_CHUNK)
-			{
-				size_t* tag = (void*)chk - sizeof(size_t);
-				chk = (void*)chk - (GETSIZE(*tag) + CHUNK_OVERHEAD);
-			}
+			// while (chk->header & LEFT_CHUNK)
+			// {
+			// 	size_t* tag = (void*)chk - sizeof(size_t);
+			// 	chk = (void*)chk - (GETSIZE(*tag) + CHUNK_OVERHEAD);
+			// }
 
 			while (chk)
 			{
@@ -47,10 +47,13 @@ void print_memory_diagram()
 				
 				memory += chunksize;
 				overhead += CHUNK_OVERHEAD;
-				if (chk->header & RIGHT_CHUNK)
-					chk = (void *)chk + chunksize + CHUNK_OVERHEAD;
-				else
-					break ;
+				// if (chk->header & RIGHT_CHUNK)
+				// 	chk = (void *)chk + chunksize + CHUNK_OVERHEAD;
+				// else if (!(chk->header & IN_USE))
+				// 	chk = chk->next;
+				// else
+				// 	break ;
+				chk = chk->next;
 			}
 			printf("\nTotal: %ld bytes + %ld overhead\n", memory, overhead);
 		}

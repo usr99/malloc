@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:52:32 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/04 19:05:12 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/04 21:17:21 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,7 +69,6 @@ void merge_chunks(t_chunk** arena, t_chunk* dest, t_chunk* src, t_chunk_state di
 {
 	/* Update destination size */
 	SETSIZE(dest, GETSIZE(dest->header) + CHUNK_OVERHEAD + GETSIZE(src->header));
-	CLEARSTATE(dest, IN_USE);
 	COPYSTATE(dest, src, RIGHT_CHUNK);
 	set_chunk_footer(dest);
 
