@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:52:32 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/05 20:31:56 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/05 21:47:42 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,4 +91,16 @@ bool memory_available(size_t total_usage)
 	if (getrlimit(RLIMIT_AS, &rlp) == -1)
 		return false;
 	return (total_usage < rlp.rlim_cur);
+}
+
+t_arena* find_arena(t_arena* root, void* ref)
+{
+	/* Look for the arena in which "ref" pointer is located */
+	t_arena *ar;
+	for (ar = root; ar; ar = ar->next)
+	{
+		if (ref >= (void *)ar && ref < (void *)ar + ar->size)
+			return ar;
+	};
+	return NULL; // should never happen assuming pointers given as arguments are valid
 }

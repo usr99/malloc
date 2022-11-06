@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:25:31 by mamartin          #+#    #+#             */
-/*   Updated: 2022/10/25 22:44:02 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/06 00:53:00 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,5 +20,8 @@ void*	malloc(size_t size);
 void*	realloc(void *ptr, size_t size);
 void	free(void *ptr);
 void	show_alloc_mem();
+
+void	show_alloc_mem_hex();
+void	show_alloc_history();
 
 #endif

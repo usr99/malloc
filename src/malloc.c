@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/05 21:10:21 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/06 01:12:26 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -152,14 +152,9 @@ void free(void *ptr)
 	else
 	{
 		t_chunk* freed = (t_chunk*)header;
-
-		t_arena* arena;
-		for (arena = g_memory.arenas[aridx]; arena; arena = arena->next) {
-			if ((void*)freed >= (void*)arena && (void*)freed < (void*)arena + arena->size)
-				break ;
-		};
+		t_arena* arena = find_arena(g_memory.arenas[aridx], freed);
 		if (!arena)
-			return ; // should never happen with a valid usage of free()
+			return ;
 
 		/* Set chunk as free */
 		CLEARSTATE(freed, IN_USE);
@@ -198,36 +193,3 @@ void free(void *ptr)
 			unmap_arena(arena, aridx);
 	}
 }
-
-#if 0
-void *realloc(void *ptr, size_t size)
-{
-	if (!ptr)
-		return malloc(size);
-	// else if size == 0 ??? (see man)
-	// shrink allocs ?
-
-	t_chunk* chk = ptr - sizeof(size_t);
-	if (GETSIZE(chk->header) >= size)
-		return ptr; // chunk could be already large enough
-
-	if (chk->header & RIGHT_CHUNK)
-	{
-		// find the neighbouring chunk
-		// check if we could take enough memory from it
-			// if not, use malloc
-		// split the chunk
-		// update freelist
-		// update current chk
-	}
-	else
-	{
-		void* new = malloc(size);
-		if (!new)
-			return NULL;
-		ft_memcpy(new, ptr, GETSIZE(chk->header));
-		free(ptr);
-		return new;
-	}
-}
-#endif
