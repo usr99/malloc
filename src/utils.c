@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:52:32 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/05 21:47:42 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/06 16:25:42 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,15 @@ void update_freelist(t_arena* arena, t_chunk* current, t_chunk* next, t_chunk* p
 		current->prev->next = next;
 	if (current->next)
 		current->next->prev = previous;
+}
+
+void freelist_push_front(t_arena* arena, t_chunk* to_insert)
+{
+	to_insert->next = arena->root;
+	if (arena->root)
+		arena->root->prev = to_insert;
+	arena->root = to_insert;
+	to_insert->prev = NULL;
 }
 
 t_chunk* get_near_chunk(t_chunk* current, t_chunk_state side)

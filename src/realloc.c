@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/06 01:11:58 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/06 13:49:12 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/06 16:42:17 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 
 extern t_mem_tracker g_memory;
 
-static void* realloc_routine(void* ptr, size_t oldsize, size_t newsize)
+static void* _realloc(void* ptr, size_t oldsize, size_t newsize)
 {
 	void* new = malloc(newsize);
 	if (!new)
@@ -28,6 +28,62 @@ static void* realloc_routine(void* ptr, size_t oldsize, size_t newsize)
 	free(ptr);
 	return new;
 }
+
+static bool enlarge_chunk(t_arena* arena, t_chunk** dest, t_chunk* src, size_t extension)
+{
+	size_t available = GETSIZE(src->header) + CHUNK_OVERHEAD;
+	if (available < extension)
+		return false;
+
+	size_t left = available - extension;
+	if (left >= MIN_CHUNK_SIZE) // split source chunk to take some memory from it
+	{
+		t_chunk* tmp;
+		if (*dest < src)
+		{
+			/* Shift source chunk to the right and update pointers */
+			tmp = src;
+			src = (void*)src + extension;
+			update_freelist(arena, tmp, src, src);
+			*src = *tmp;
+		}
+		else
+		{
+			/* Extend destination chunk to the left */
+			tmp = *dest;
+			*dest = (void*)*dest - extension;
+			(*dest)->header = tmp->header;
+		}
+
+		/* Set new chunks sizes */
+		SETSIZE((*dest), GETSIZE((*dest)->header + extension));
+		set_chunk_footer(*dest);
+		SETSIZE(src, GETSIZE(src->header) - extension);
+		set_chunk_footer(src);
+	}
+	else // not enough space left for a chunk
+	{
+		/* Remove source chunk from the list */
+		update_freelist(arena, src, src->next, src->prev);
+
+		if (*dest < src)
+		{
+			/* Extends destination chunk to the right */
+			SETSIZE((*dest), GETSIZE((*dest)->header) + available);
+			COPYSTATE((*dest), src, RIGHT_CHUNK);
+		}
+		else
+		{
+			/* Extends source chunk to absorb destination */
+			SETSIZE(src, GETSIZE((*dest)->header) + available);
+			SETSTATE(src, IN_USE);
+			COPYSTATE(src, (*dest), RIGHT_CHUNK);
+			set_chunk_footer(src);
+			*dest = src;
+		}
+	}
+	return true;
+}	
 
 void *realloc(void *ptr, size_t size)
 {
@@ -46,23 +102,20 @@ void *realloc(void *ptr, size_t size)
 	/* Check that the size requested should not be managed in a different arena category */
 	t_arena_index aridx = choose_arena(current_size);
 	if (aridx != choose_arena(size)) // make a new allocation in order to preserve coherence
-		return realloc_routine(ptr, current_size, size);
+		return _realloc(ptr, current_size, size);
+	t_arena *arena = find_arena(g_memory.arenas[aridx], chk);
 
 	/* Find contiguous chunk on the right (upper addresses) */
 	t_chunk* near = get_near_chunk(chk, RIGHT_CHUNK);
-
-	if (size < current_size) // shrink allocated chunk
+	if (size < current_size)
 	{
 		size_t diff = current_size - size;
-		t_arena *arena = find_arena(g_memory.arenas[aridx], chk);
-		
 		if (near && !(near->header & IN_USE))
 		{
-			// enlarge nearest chunk
+			/* Next chunk in memory is widen */
 			t_chunk* tmp = near;
 			near = (void*)near - diff;
 			update_freelist(arena, tmp, near, near);
-
 			*near = *tmp;
 			SETSIZE(near, GETSIZE(tmp->header) + diff);
 			set_chunk_footer(near);
@@ -71,7 +124,7 @@ void *realloc(void *ptr, size_t size)
 		{
 			if (diff >= MIN_CHUNK_SIZE)
 			{
-				// create a new free chunk
+				/* Create a new free chunk from released memory */
 				t_chunk* new = (void*)chk + size + CHUNK_OVERHEAD;
 				ft_memset(new, 0, sizeof(t_chunk));
 				SETSIZE(new, diff - CHUNK_OVERHEAD);
@@ -79,93 +132,35 @@ void *realloc(void *ptr, size_t size)
 				if (near)
 					SETSTATE(new, RIGHT_CHUNK);
 				set_chunk_footer(new);
-
-				// push front in the freelist (code duplicate in free())
-				new->next = arena->root;
-				if (arena->root)
-					arena->root->prev = new;
-				arena->root = new;
+				freelist_push_front(arena, new);
 			}
 			else
-				return ptr;
+				return ptr; // allocation is left unmodified
 		}
 		SETSIZE(chk, size);
 		set_chunk_footer(chk);
-		return ptr;
 	}
-	else // enlarge allocated chunk
+	else
 	{
+		size_t diff = size - current_size;
 		if (near && !(near->header & IN_USE))
 		{
-			size_t diff = size - current_size;
-			size_t available = GETSIZE(near->header) + CHUNK_OVERHEAD;
-			if (available >= diff)
-			{
-				t_arena *arena = find_arena(g_memory.arenas[aridx], chk);
-				size_t left = available - diff;
-
-				if (left >= MIN_CHUNK_SIZE) // split nearest chunk
-				{
-					SETSIZE(chk, size);
-
-					t_chunk *tmp = near;
-					near = (void *)near + diff;
-					update_freelist(arena, tmp, near, near);
-
-					*near = *tmp;
-					SETSIZE(near, GETSIZE(tmp->header) - diff);
-					set_chunk_footer(near);
-				}
-				else // absorbs the whole chunk
-				{
-					update_freelist(arena, near, near->next, near->prev);
-					SETSIZE(chk, current_size + available);
-					COPYSTATE(chk, near, RIGHT_CHUNK);
-				}
-				set_chunk_footer(chk);
-				return ptr;
-			}
-			else
-				return realloc_routine(ptr, current_size, size);
+			if (!enlarge_chunk(arena, &chk, near, diff))
+				return _realloc(ptr, current_size, size);
 		}
 		else if ((near = get_near_chunk(chk, LEFT_CHUNK)) && !(near->header & IN_USE))
 		{
-			size_t diff = size - current_size;
-			size_t available = GETSIZE(near->header) + CHUNK_OVERHEAD;
-			if (available >= diff)
+			if (enlarge_chunk(arena, &chk, near, diff))
 			{
-				t_arena *arena = find_arena(g_memory.arenas[aridx], chk);
-				size_t left = available - diff;
-
-				if (left >= MIN_CHUNK_SIZE) // split nearest chunk
-				{
-					t_chunk* tmp = chk;
-					chk = (void *)chk - diff;
-					chk->header = tmp->header;
-					SETSIZE(chk, size);
-					set_chunk_footer(chk);
-
-					SETSIZE(near, GETSIZE(near->header) - diff);
-					set_chunk_footer(near);
-
-					ptr = (void*)chk + sizeof(size_t);
-				}
-				else // absorbs the whole chunk
-				{
-					update_freelist(arena, near, near->next, near->prev);
-					SETSIZE(near, current_size + available);
-					SETSTATE(near, IN_USE);
-					COPYSTATE(near, chk, RIGHT_CHUNK);
-					set_chunk_footer(near);
-
-					ptr = (void*)near + sizeof(size_t);
-				}
-				return ptr;
+				void* tmp = ptr;
+				ptr = (void*)chk + sizeof(size_t);
+				ft_memcpy(ptr, tmp, current_size);
 			}
 			else
-				return realloc_routine(ptr, current_size, size);
+				return _realloc(ptr, current_size, size);
 		}
 		else
-			return realloc_routine(ptr, current_size, size);
+			return _realloc(ptr, current_size, size);
 	}
+	return ptr;
 }

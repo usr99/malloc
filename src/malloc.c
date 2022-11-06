@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/06 01:12:26 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/06 16:26:30 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -179,14 +179,7 @@ void free(void *ptr)
 			freed = chk;
 		}
 		else if (!merged)
-		{
-			/* Insert freed chunk at the beginning of the freelist */
-			freed->next = arena->root;
-			if (arena->root)
-				arena->root->prev = freed;
-			arena->root = freed;
-			freed->prev = NULL;
-		}
+			freelist_push_front(arena, freed);
 
 		/* Unmap an arena if it is now empty */
 		if (GETSIZE(arena->root->header) == arena->size - sizeof(t_arena) - CHUNK_OVERHEAD)
