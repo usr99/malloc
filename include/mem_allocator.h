@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:42:33 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/05 17:19:40 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/05 20:21:56 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,11 +28,11 @@
 # define CHUNK_OVERHEAD sizeof(size_t) * 2
 # define MIN_CHUNK_SIZE MIN_ALLOC_SIZE + CHUNK_OVERHEAD
 
-# define TINY_MAX_ALLOC 256
-# define TINY_ARENA_SIZE ALIGN(100 * (TINY_MAX_ALLOC + CHUNK_OVERHEAD), getpagesize())
+# define TINY_MAX_ALLOC 1024
+# define TINY_ARENA_SIZE ALIGN(100 * (TINY_MAX_ALLOC + CHUNK_OVERHEAD) + sizeof(t_arena), getpagesize())
 
-# define SMALL_MAX_ALLOC 1024
-# define SMALL_ARENA_SIZE ALIGN(100 * (SMALL_MAX_ALLOC + CHUNK_OVERHEAD), getpagesize())
+# define SMALL_MAX_ALLOC 1024 * 1024
+# define SMALL_ARENA_SIZE ALIGN(100 * (SMALL_MAX_ALLOC + CHUNK_OVERHEAD) + sizeof(t_arena), getpagesize())
 
 /*
 ** Memory chunks implementation
@@ -45,7 +45,35 @@
 #define CLEARSTATE(chk, state)		chk->header &= ~state
 #define COPYSTATE(dest, src, state) if (src->header & state) SETSTATE(dest, state); else CLEARSTATE(dest, state)
 
+/*
+** Enums
+*/
 typedef enum e_arena_index { TINY, SMALL, LARGE } t_arena_index;
+typedef enum e_chunk_states
+{
+	FREE		= 0,
+	IN_USE		= 1,
+	LEFT_CHUNK	= 2,
+	RIGHT_CHUNK	= 4
+} t_chunk_state;
+
+/*
+** Structures
+*/
+typedef struct s_chunk
+{
+	size_t header;
+	struct s_chunk* next;
+	struct s_chunk* prev;
+} t_chunk;
+
+typedef struct s_arena
+{
+	struct s_arena* next;
+	struct s_arena* prev;
+	t_chunk* root;
+	size_t size;
+} t_arena;
 
 typedef struct s_alloc_history
 {
@@ -57,32 +85,17 @@ typedef struct s_alloc_history
 
 typedef struct s_mem_tracker
 {
-	void* arenas[3];
+	t_arena* arenas[3];
 	size_t total_mem_usage;
 	t_alloc_history* history;
 } t_mem_tracker;
 
-typedef enum e_chunk_states
-{
-	FREE		= 0,
-	IN_USE		= 1,
-	LEFT_CHUNK	= 2,
-	RIGHT_CHUNK	= 4
-} t_chunk_state;
-
-typedef struct s_chunk
-{
-	size_t header;
-	struct s_chunk* next;
-	struct s_chunk* prev;
-} t_chunk;
-
-typedef struct s_large_chunk
-{
-	struct s_large_chunk* next;
-	struct s_large_chunk* prev;
-	size_t header;
-} t_large_chunk;
+// typedef struct s_large_chunk
+// {
+// 	struct s_large_chunk* next;
+// 	struct s_large_chunk* prev;
+// 	size_t header;
+// } t_large_chunk;
 
 /*
 ** Debug functions

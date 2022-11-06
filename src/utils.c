@@ -6,11 +6,9 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:52:32 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/05 18:18:01 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/05 20:31:56 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
-#include <stdio.h>
 
 #include "utils.h"
 #include "libft.h"
@@ -36,11 +34,15 @@ t_arena_index choose_arena(size_t size)
 	return (size > SMALL_MAX_ALLOC) ? LARGE : ((size > TINY_MAX_ALLOC) ? SMALL : TINY);
 }
 
-void update_freelist(t_chunk** arena, t_chunk* current, t_chunk* next, t_chunk* previous)
+void update_freelist(t_arena* arena, t_chunk* current, t_chunk* next, t_chunk* previous)
 {
-	/* Update logical relations between neighbours chunks */
-	if (*arena == current)
-		*arena = next;
+	/*
+	** Remove "current" chunk from the list
+	** updating the arena root if necessary
+	** and updating logical relations between its neighbours if any
+	*/
+	if (arena->root == current)
+		arena->root = next;
 	if (current->prev)
 		current->prev->next = next;
 	if (current->next)
@@ -63,7 +65,7 @@ t_chunk* get_near_chunk(t_chunk* current, t_chunk_state side)
 		return NULL;
 }
 
-void merge_chunks(t_chunk** arena, t_chunk* dest, t_chunk* src, t_chunk_state direction)
+void merge_chunks(t_arena* arena, t_chunk* dest, t_chunk* src, t_chunk_state direction)
 {
 	/* Update destination size */
 	SETSIZE(dest, GETSIZE(dest->header) + CHUNK_OVERHEAD + GETSIZE(src->header));
