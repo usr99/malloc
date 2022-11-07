@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:42:33 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/05 20:21:56 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/07 11:48:57 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,13 +89,6 @@ typedef struct s_mem_tracker
 	size_t total_mem_usage;
 	t_alloc_history* history;
 } t_mem_tracker;
-
-// typedef struct s_large_chunk
-// {
-// 	struct s_large_chunk* next;
-// 	struct s_large_chunk* prev;
-// 	size_t header;
-// } t_large_chunk;
 
 /*
 ** Debug functions
