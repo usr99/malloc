@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:42:33 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/07 11:48:57 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/07 13:23:04 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,12 +87,14 @@ typedef struct s_mem_tracker
 {
 	t_arena* arenas[3];
 	size_t total_mem_usage;
-	t_alloc_history* history;
+	void* history;
 } t_mem_tracker;
 
 /*
-** Debug functions
+** History functions
 */
-void print_memory_diagram();
+void push_history(void* ptr, size_t size);
+void set_free_history(void* ptr);
+void update_history(void* oldptr, void* newptr, size_t newsize);
 
 #endif

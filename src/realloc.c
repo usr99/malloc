@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/06 01:11:58 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/06 22:55:41 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/07 13:25:39 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,6 +95,7 @@ void *realloc(void *ptr, size_t size)
 		return NULL;
 	}
 
+	void* oldptr = ptr;
 	size_t* header = ptr - sizeof(size_t);
 	size_t current_size = GETSIZE(*header);
 	size = align(size);
@@ -122,69 +123,73 @@ void *realloc(void *ptr, size_t size)
 				g_memory.total_mem_usage -= rm;
 				arena->size -= rm;
 			}
-			return ptr;
 		}
-	}
-
-	t_chunk* chk = ptr - sizeof(size_t);
-	t_arena *arena = find_arena(g_memory.arenas[aridx], chk);
-
-	/* Find contiguous chunk on the right (upper addresses) */
-	t_chunk* near = get_near_chunk(chk, RIGHT_CHUNK);
-	if (size < current_size)
-	{
-		size_t diff = current_size - size;
-		if (near && !(near->header & IN_USE))
-		{
-			/* Next chunk in memory is widen */
-			t_chunk* tmp = near;
-			near = (void*)near - diff;
-			update_freelist(arena, tmp, near, near);
-			*near = *tmp;
-			SETSIZE(near, GETSIZE(tmp->header) + diff);
-			set_chunk_footer(near);
-		}
-		else
-		{
-			if (diff >= MIN_CHUNK_SIZE)
-			{
-				/* Create a new free chunk from released memory */
-				t_chunk* new = (void*)chk + size + CHUNK_OVERHEAD;
-				ft_memset(new, 0, sizeof(t_chunk));
-				SETSIZE(new, diff - CHUNK_OVERHEAD);
-				SETSTATE(new, LEFT_CHUNK);
-				if (near)
-					SETSTATE(new, RIGHT_CHUNK);
-				set_chunk_footer(new);
-				freelist_push_front(arena, new);
-			}
-			else
-				return ptr; // allocation is left unmodified
-		}
-		SETSIZE(chk, size);
-		set_chunk_footer(chk);
 	}
 	else
 	{
-		size_t diff = size - current_size;
-		if (near && !(near->header & IN_USE))
+		t_chunk* chk = ptr - sizeof(size_t);
+		t_arena *arena = find_arena(g_memory.arenas[aridx], chk);
+
+		/* Find contiguous chunk on the right (upper addresses) */
+		t_chunk* near = get_near_chunk(chk, RIGHT_CHUNK);
+		if (size < current_size)
 		{
-			if (!enlarge_chunk(arena, &chk, near, diff))
-				return _realloc(ptr, current_size, size);
-		}
-		else if ((near = get_near_chunk(chk, LEFT_CHUNK)) && !(near->header & IN_USE))
-		{
-			if (enlarge_chunk(arena, &chk, near, diff))
+			size_t diff = current_size - size;
+			if (near && !(near->header & IN_USE))
 			{
-				void* tmp = ptr;
-				ptr = (void*)chk + sizeof(size_t);
-				ft_memcpy(ptr, tmp, current_size);
+				/* Next chunk in memory is widen */
+				t_chunk* tmp = near;
+				near = (void*)near - diff;
+				update_freelist(arena, tmp, near, near);
+				*near = *tmp;
+				SETSIZE(near, GETSIZE(tmp->header) + diff);
+				set_chunk_footer(near);
+			}
+			else
+			{
+				if (diff >= MIN_CHUNK_SIZE)
+				{
+					/* Create a new free chunk from released memory */
+					t_chunk* new = (void*)chk + size + CHUNK_OVERHEAD;
+					ft_memset(new, 0, sizeof(t_chunk));
+					SETSIZE(new, diff - CHUNK_OVERHEAD);
+					SETSTATE(new, LEFT_CHUNK);
+					if (near)
+						SETSTATE(new, RIGHT_CHUNK);
+					set_chunk_footer(new);
+					freelist_push_front(arena, new);
+				}
+				else
+					return ptr; // allocation is left unmodified
+			}
+			SETSIZE(chk, size);
+			set_chunk_footer(chk);
+		}
+		else
+		{
+			size_t diff = size - current_size;
+			if (near && !(near->header & IN_USE))
+			{
+				if (!enlarge_chunk(arena, &chk, near, diff))
+					return _realloc(ptr, current_size, size);
+			}
+			else if ((near = get_near_chunk(chk, LEFT_CHUNK)) && !(near->header & IN_USE))
+			{
+				if (enlarge_chunk(arena, &chk, near, diff))
+				{
+					void* tmp = ptr;
+					ptr = (void*)chk + sizeof(size_t);
+					ft_memcpy(ptr, tmp, current_size);
+				}
+				else
+					return _realloc(ptr, current_size, size);
 			}
 			else
 				return _realloc(ptr, current_size, size);
-		}
-		else
-			return _realloc(ptr, current_size, size);
+		}		
 	}
+
+	if (getenv("FT_MALLOC_DEBUG"))
+		update_history(oldptr, ptr, size);
 	return ptr;
 }

@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/06 16:26:30 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/07 13:22:44 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,6 +80,7 @@ void* malloc(size_t size)
 		return NULL;
 	size = align(size);
 	
+	void* ptr;
 	t_arena_index aridx = choose_arena(size);
 	if (aridx == LARGE)
 	{
@@ -88,7 +89,7 @@ void* malloc(size_t size)
 		if (!new)
 			return NULL;
 		new->size |= IN_USE;
-		return (void *)new + sizeof(t_arena);
+		ptr = (void *)new + sizeof(t_arena);
 	}
 	else
 	{
@@ -133,8 +134,12 @@ void* malloc(size_t size)
 
 		SETSTATE(current, IN_USE);
 		set_chunk_footer(current);
-		return (void *)current + sizeof(size_t);
+		ptr = (void *)current + sizeof(size_t);
 	}
+	
+	if (getenv("FT_MALLOC_DEBUG"))
+		push_history(ptr, size);
+	return ptr;
 }
 
 void free(void *ptr)
@@ -185,4 +190,7 @@ void free(void *ptr)
 		if (GETSIZE(arena->root->header) == arena->size - sizeof(t_arena) - CHUNK_OVERHEAD)
 			unmap_arena(arena, aridx);
 	}
+
+	if (getenv("FT_MALLOC_DEBUG"))
+		set_free_history(ptr);
 }

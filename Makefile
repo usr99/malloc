@@ -15,7 +15,7 @@ CC		= gcc
 INC 	= -I ./include -I ./libft
 
 SRCDIR	= ./src/
-SRC		= malloc.c realloc.c utils.c debug.c
+SRC		= malloc.c realloc.c utils.c debug.c history.c
 HEADERS = libft_malloc.h
 DEPS = ${addprefix include/, ${HEADERS}}
 

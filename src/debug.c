@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:45:15 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/07 12:02:36 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/07 13:40:08 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,8 @@
 #include "mem_allocator.h"
 #include "libft.h"
 
+#define GREEN "\x1b[1;32m"
+#define RED "\x1b[1;31m"
 #define YELLOW "\x1b[33m"
 #define BLUE "\x1b[34m"
 #define RESET "\x1b[0m"
@@ -68,7 +70,7 @@ static void show_mem(void (*debug_fn)(void*, size_t))
 		/* Print arena category and address */
 		ft_putstr(arena_names[aridx]);
 		ft_putstr(" : 0x");
-		ft_putnbr_hex(lastptr);
+		ft_putnbr_hex((size_t)lastptr);
 		ft_putchar('\n');
 
 		if (aridx != LARGE)
@@ -106,10 +108,10 @@ static void show_mem(void (*debug_fn)(void*, size_t))
 static void print_alloc_info(void* start, size_t size)
 {
 	ft_putstr("0x");
-	ft_putnbr_hex(start);
+	ft_putnbr_hex((size_t)start);
 	ft_putstr(" - ");
 	ft_putstr("0x");
-	ft_putnbr_hex(start + size);
+	ft_putnbr_hex((size_t)start + size);
 	ft_putstr(" : ");
 	ft_putnbr(size);
 	ft_putstr(" bytes\n");
@@ -124,7 +126,7 @@ static void print_hexdump(void* start, size_t size)
 	/* Print chunk's size and address */
 	ft_putstr(YELLOW);
 	ft_putstr("0x");
-	ft_putnbr_hex(start);
+	ft_putnbr_hex((size_t)start);
 	ft_putstr(RESET);
 	ft_putstr(" : ");
 	ft_putnbr(size);
@@ -177,5 +179,48 @@ void show_alloc_mem_hex()
 
 void show_alloc_history()
 {
+	if (g_memory.history)
+	{
+		size_t i;
+		size_t nallocs = *(size_t*)(g_memory.history + sizeof(size_t));
+		t_alloc_history* history = g_memory.history + sizeof(size_t) * 2;
 
+		for (i = 0; i < nallocs; i++)
+		{
+			ft_putstr(history[i].free_time ? GREEN : RED);
+			ft_putchar('[');
+			ft_putnbr(history[i].alloc_time);
+			ft_putchar(']');
+			ft_putstr(RESET);
+			ft_putstr(" malloc'd ");
+			ft_putstr(BLUE);
+			ft_putnbr(history[i].size);
+			ft_putstr(RESET);
+			ft_putstr(" bytes at");
+			ft_putstr(BLUE);
+			ft_putstr(" 0x");
+			ft_putnbr_hex((size_t)history[i].address);
+			ft_putstr(RESET);
+
+			if (history[i].free_time)
+			{
+				ft_putstr(", ");
+				ft_putstr(GREEN);
+				ft_putstr("freed");
+				ft_putstr(RESET);
+				ft_putstr(" at [");
+				ft_putnbr(history[i].free_time);
+				ft_putstr("]\n");
+			}
+			else
+			{
+				ft_putstr(", still ");
+				ft_putstr(RED);
+				ft_putstr("in use\n");
+				ft_putstr(RESET);
+			}
+		}
+	}
+	else
+		ft_putstr("History is empty or disabled, please set FT_MALLOC_DEBUG to turn this feature on.\n");
 }
