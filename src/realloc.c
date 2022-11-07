@@ -6,11 +6,13 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/06 01:11:58 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/07 13:25:39 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/07 14:05:16 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <pthread.h>
 #include <sys/mman.h>
+
 #include "libft_malloc.h"
 #include "libft.h"
 
@@ -18,14 +20,16 @@
 #include "utils.h"
 
 extern t_mem_tracker g_memory;
+extern pthread_mutex_t g_mutex;
 
 static void* _realloc(void* ptr, size_t oldsize, size_t newsize)
 {
 	void* new = malloc(newsize);
 	if (!new)
-		return NULL;
+		return unlock_mutex();
 	ft_memcpy(new, ptr, oldsize);
 	free(ptr);
+	unlock_mutex();
 	return new;
 }
 
@@ -95,13 +99,15 @@ void *realloc(void *ptr, size_t size)
 		return NULL;
 	}
 
+	lock_mutex();
+
 	void* oldptr = ptr;
 	size_t* header = ptr - sizeof(size_t);
 	size_t current_size = GETSIZE(*header);
 	size = align(size);
 
 	if (!IS_ALIGNED(header, __SIZEOF_POINTER__) || !(*header & IN_USE))
-		return NULL;
+		return unlock_mutex();
 
 	/* Check that the size requested should not be managed in a different arena category */
 	t_arena_index aridx = choose_arena(current_size);
@@ -160,7 +166,10 @@ void *realloc(void *ptr, size_t size)
 					freelist_push_front(arena, new);
 				}
 				else
+				{
+					unlock_mutex();
 					return ptr; // allocation is left unmodified
+				}
 			}
 			SETSIZE(chk, size);
 			set_chunk_footer(chk);
@@ -191,5 +200,6 @@ void *realloc(void *ptr, size_t size)
 
 	if (getenv("FT_MALLOC_DEBUG"))
 		update_history(oldptr, ptr, size);
+	unlock_mutex();
 	return ptr;
 }

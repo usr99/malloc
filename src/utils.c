@@ -6,12 +6,17 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:52:32 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/06 16:25:42 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/07 14:11:12 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <pthread.h>
+#include <errno.h>
+
 #include "utils.h"
 #include "libft.h"
+
+extern pthread_mutex_t g_mutex;
 
 size_t align(size_t size)
 {
@@ -112,4 +117,23 @@ t_arena* find_arena(t_arena* root, void* ref)
 			return ar;
 	};
 	return NULL; // should never happen assuming pointers given as arguments are valid
+}
+
+void lock_mutex()
+{
+	if (pthread_mutex_lock(&g_mutex) == EINVAL)
+	{
+		if (pthread_mutex_init(&g_mutex, NULL) == 0)
+			lock_mutex();
+	}
+}
+
+void* unlock_mutex()
+{
+	if (pthread_mutex_unlock(&g_mutex) == EINVAL)
+	{
+		if (pthread_mutex_init(&g_mutex, NULL) == 0)
+			unlock_mutex();
+	}
+	return NULL;
 }

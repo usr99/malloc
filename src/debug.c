@@ -6,10 +6,11 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:45:15 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/07 13:40:08 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/07 13:58:46 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -23,6 +24,7 @@
 #define RESET "\x1b[0m"
 
 extern t_mem_tracker g_memory;
+extern pthread_mutex_t g_mutex;
 
 static t_arena* lower_bound_addr(t_arena* addr, t_arena_index* aridx)
 {

@@ -6,12 +6,13 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/20 22:26:01 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/07 13:22:44 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/07 14:11:25 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <sys/mman.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include "libft_malloc.h"
 #include "libft.h"
@@ -20,6 +21,7 @@
 #include "utils.h"
 
 t_mem_tracker g_memory = {0};
+pthread_mutex_t g_mutex = {0};
 
 static t_arena* map_new_arena(t_arena_index aridx, size_t size)
 {
@@ -79,7 +81,9 @@ void* malloc(size_t size)
 	if (!size)
 		return NULL;
 	size = align(size);
-	
+
+	lock_mutex();
+
 	void* ptr;
 	t_arena_index aridx = choose_arena(size);
 	if (aridx == LARGE)
@@ -87,7 +91,7 @@ void* malloc(size_t size)
 		size_t allocated = ALIGN(size + sizeof(t_arena), getpagesize());
 		t_arena* new = map_new_arena(LARGE, allocated);
 		if (!new)
-			return NULL;
+			return unlock_mutex();
 		new->size |= IN_USE;
 		ptr = (void *)new + sizeof(t_arena);
 	}
@@ -95,7 +99,7 @@ void* malloc(size_t size)
 	{
 		/* Initialize arena if empty */
 		if (!g_memory.arenas[aridx] && !(g_memory.arenas[aridx] = map_new_arena(aridx, 0)))
-			return NULL;
+			return unlock_mutex();
 
 		/* Find the first chunk of memory that can fit the request */
 		t_arena* arena;
@@ -112,7 +116,7 @@ void* malloc(size_t size)
 		{
 			arena = map_new_arena(aridx, 0);
 			if (!arena)
-				return NULL;
+				return unlock_mutex();
 			current = arena->root;
 		}
 
@@ -139,6 +143,7 @@ void* malloc(size_t size)
 	
 	if (getenv("FT_MALLOC_DEBUG"))
 		push_history(ptr, size);
+	unlock_mutex();
 	return ptr;
 }
 
@@ -147,9 +152,14 @@ void free(void *ptr)
 	if (!ptr)
 		return ;
 
+	lock_mutex();
+
 	size_t* header = ptr - sizeof(size_t);
 	if (!IS_ALIGNED(header, __SIZEOF_POINTER__) || !(*header & IN_USE))
+	{
+		unlock_mutex();
 		return ;
+	}
 
 	t_arena_index aridx = choose_arena(GETSIZE(*header));
 	if (aridx == LARGE)
@@ -159,7 +169,10 @@ void free(void *ptr)
 		t_chunk* freed = (t_chunk*)header;
 		t_arena* arena = find_arena(g_memory.arenas[aridx], freed);
 		if (!arena)
+		{
+			unlock_mutex();
 			return ;
+		}
 
 		/* Set chunk as free */
 		CLEARSTATE(freed, IN_USE);
@@ -193,4 +206,5 @@ void free(void *ptr)
 
 	if (getenv("FT_MALLOC_DEBUG"))
 		set_free_history(ptr);
+	unlock_mutex();
 }

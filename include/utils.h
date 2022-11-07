@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:52:07 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/06 16:25:16 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/07 14:02:18 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,5 +28,11 @@ t_chunk* get_near_chunk(t_chunk* current, t_chunk_state side);
 void merge_chunks(t_arena* arena, t_chunk* dest, t_chunk* src, t_chunk_state direction);
 bool memory_available(size_t total_usage);
 t_arena* find_arena(t_arena* root, void* ref);
+
+/*
+** Multithreading utilities
+*/
+void lock_mutex();
+void* unlock_mutex();
 
 #endif
