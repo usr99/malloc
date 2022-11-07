@@ -6,10 +6,11 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/06 01:11:58 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/06 16:42:17 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/06 22:55:41 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <sys/mman.h>
 #include "libft_malloc.h"
 #include "libft.h"
 
@@ -23,7 +24,6 @@ static void* _realloc(void* ptr, size_t oldsize, size_t newsize)
 	void* new = malloc(newsize);
 	if (!new)
 		return NULL;
-
 	ft_memcpy(new, ptr, oldsize);
 	free(ptr);
 	return new;
@@ -95,14 +95,38 @@ void *realloc(void *ptr, size_t size)
 		return NULL;
 	}
 
-	t_chunk* chk = ptr - sizeof(size_t);
-	size_t current_size = GETSIZE(chk->header);
+	size_t* header = ptr - sizeof(size_t);
+	size_t current_size = GETSIZE(*header);
 	size = align(size);
-	
+
+	if (!IS_ALIGNED(header, __SIZEOF_POINTER__) || !(*header & IN_USE))
+		return NULL;
+
 	/* Check that the size requested should not be managed in a different arena category */
 	t_arena_index aridx = choose_arena(current_size);
 	if (aridx != choose_arena(size)) // make a new allocation in order to preserve coherence
 		return _realloc(ptr, current_size, size);
+
+	if (aridx == LARGE)
+	{		
+		t_arena* arena = ptr - sizeof(t_arena);
+		if (size > current_size)
+			return _realloc(ptr, current_size - sizeof(t_arena), size);
+		else
+		{
+			size_t npages = (arena->size - (size + sizeof(t_arena))) / getpagesize();
+			size_t rm = npages * getpagesize();
+
+			if (munmap((void*)arena + arena->size - rm, rm) == 0)
+			{
+				g_memory.total_mem_usage -= rm;
+				arena->size -= rm;
+			}
+			return ptr;
+		}
+	}
+
+	t_chunk* chk = ptr - sizeof(size_t);
 	t_arena *arena = find_arena(g_memory.arenas[aridx], chk);
 
 	/* Find contiguous chunk on the right (upper addresses) */
