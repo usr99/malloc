@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:45:15 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/07 11:48:50 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/07 12:02:36 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,10 @@
 
 #include "mem_allocator.h"
 #include "libft.h"
+
+#define YELLOW "\x1b[33m"
+#define BLUE "\x1b[34m"
+#define RESET "\x1b[0m"
 
 extern t_mem_tracker g_memory;
 
@@ -53,7 +57,7 @@ static void ft_putnbr_hex(size_t nbr)
 
 static void show_mem(void (*debug_fn)(void*, size_t))
 {
-	static const char* arena_names[3] = { "TINY", "SMALL", "LARGE" };
+	static const char* arena_names[3] = { "\x1b[1;32mTINY\x1b[0;0m", "\x1b[1;33mSMALL\x1b[0;0m", "\x1b[1;31mLARGE\x1b[0;0m" };
 	t_arena* lastptr = NULL;
 	t_arena_index aridx;
 
@@ -118,8 +122,10 @@ static void print_hexdump(void* start, size_t size)
 	size_t lower_bits;
 
 	/* Print chunk's size and address */
+	ft_putstr(YELLOW);
 	ft_putstr("0x");
 	ft_putnbr_hex(start);
+	ft_putstr(RESET);
 	ft_putstr(" : ");
 	ft_putnbr(size);
 	ft_putstr(" bytes\n");
@@ -132,6 +138,7 @@ static void print_hexdump(void* start, size_t size)
 		if (lower_bits == 0) // multiple of 16
 		{
 			size_t x = 0x1000000;
+			ft_putstr(BLUE);
 			while (x > head & x > 1)
 			{
 				ft_putchar('0');
@@ -139,6 +146,7 @@ static void print_hexdump(void* start, size_t size)
 			}
 			ft_putnbr_hex(head);
 			ft_putchar('\t');
+			ft_putstr(RESET);
 		}
 
 		/* Print byte as hexadecimal */
