@@ -109,7 +109,10 @@ void *realloc(void *ptr, size_t size)
 
 	lock_mutex();
 
+#ifdef HISTORY
 	void* oldptr = ptr;
+#endif
+
 	size_t* header = ptr - sizeof(size_t);
 	size_t current_size = GETSIZE(*header);
 	size = align(size);
