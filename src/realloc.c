@@ -53,7 +53,10 @@ static bool enlarge_chunk(t_arena* arena, t_chunk** dest, t_chunk* src, size_t e
 			tmp = src;
 			src = (void*)src + extension;
 			update_freelist(arena, tmp, src, src);
-			*src = *tmp;
+			
+			src->prev = tmp->prev;
+			src->next = tmp->next;
+			src->header = tmp->header;
 		}
 		else
 		{
@@ -79,6 +82,7 @@ static bool enlarge_chunk(t_arena* arena, t_chunk** dest, t_chunk* src, size_t e
 			/* Extends destination chunk to the right */
 			SETSIZE((*dest), GETSIZE((*dest)->header) + available);
 			COPYSTATE((*dest), src, RIGHT_CHUNK);
+			set_chunk_footer(*dest);
 		}
 		else
 		{
@@ -152,7 +156,7 @@ void *realloc(void *ptr, size_t size)
 				near = (void*)near - diff;
 				update_freelist(arena, tmp, near, near);
 				*near = *tmp;
-				SETSIZE(near, GETSIZE(tmp->header) + diff);
+				SETSIZE(near, GETSIZE(near->header) + diff);
 				set_chunk_footer(near);
 			}
 			else
