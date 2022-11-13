@@ -16,6 +16,7 @@
 
 #include "mem_allocator.h"
 #include "libft.h"
+#include "utils.h"
 
 #define GREEN "\x1b[1;32m"
 #define RED "\x1b[1;31m"
