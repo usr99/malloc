@@ -6,13 +6,14 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/25 22:52:07 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/07 14:02:18 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/08 18:53:02 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef _UTILS_H_
 # define _UTILS_H_
 
+# include <sys/resource.h>
 # include <stdbool.h>
 # include "mem_allocator.h"
 
