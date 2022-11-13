@@ -67,6 +67,8 @@ static void show_mem(void (*debug_fn)(void*, size_t))
 
 	size_t total = 0;
 	size_t sz;
+
+	lock_mutex();
 	while ((lastptr = lower_bound_addr(lastptr, &aridx)))
 	{
 		/* Print arena category and address */
@@ -102,6 +104,8 @@ static void show_mem(void (*debug_fn)(void*, size_t))
 			total += sz;
 		}
 	}
+
+	unlock_mutex();
 	ft_putstr("Total : ");
 	ft_putnbr(total);
 	ft_putstr(" bytes\n");	
@@ -181,6 +185,7 @@ void show_alloc_mem_hex()
 
 void show_alloc_history()
 {
+	lock_mutex();
 	if (g_memory.history)
 	{
 		size_t i;
@@ -225,4 +230,5 @@ void show_alloc_history()
 	}
 	else
 		ft_putstr("History is empty or disabled, please set FT_MALLOC_DEBUG to turn this feature on.\n");
+	unlock_mutex();
 }

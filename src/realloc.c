@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/06 01:11:58 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/07 14:05:16 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/13 16:05:58 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,12 +24,15 @@ extern pthread_mutex_t g_mutex;
 
 static void* _realloc(void* ptr, size_t oldsize, size_t newsize)
 {
+	unlock_mutex();
 	void* new = malloc(newsize);
 	if (!new)
-		return unlock_mutex();
+		return NULL;
+	lock_mutex();
 	ft_memcpy(new, ptr, oldsize);
-	free(ptr);
+	update_history(ptr, new, newsize);
 	unlock_mutex();
+	free(ptr);
 	update_history(ptr, new, newsize);
 	return new;
 }
