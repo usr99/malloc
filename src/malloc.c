@@ -141,8 +141,11 @@ void* malloc(size_t size)
 		ptr = (void *)current + sizeof(size_t);
 	}
 	
-	if (getenv("FT_MALLOC_DEBUG"))
+
+#ifdef HISTORY
 		push_history(ptr, size);
+#endif
+
 	unlock_mutex();
 	return ptr;
 }
@@ -204,7 +207,9 @@ void free(void *ptr)
 			unmap_arena(arena, aridx);
 	}
 
-	if (getenv("FT_MALLOC_DEBUG"))
+#ifdef HISTORY
 		set_free_history(ptr);
+#endif
+
 	unlock_mutex();
 }

@@ -30,6 +30,7 @@ static void* _realloc(void* ptr, size_t oldsize, size_t newsize)
 	ft_memcpy(new, ptr, oldsize);
 	free(ptr);
 	unlock_mutex();
+	update_history(ptr, new, newsize);
 	return new;
 }
 
@@ -198,8 +199,10 @@ void *realloc(void *ptr, size_t size)
 		}		
 	}
 
-	if (getenv("FT_MALLOC_DEBUG"))
+#ifdef HISTORY
 		update_history(oldptr, ptr, size);
+#endif
+
 	unlock_mutex();
 	return ptr;
 }

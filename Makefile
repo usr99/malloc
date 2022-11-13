@@ -5,6 +5,11 @@
 ifeq (${HOSTTYPE},)
 	HOSTTYPE = ${shell uname -m}_${shell uname -s}
 endif
+
+ifeq (${FT_MALLOC_HISTORY},1)
+	HISTORY = -DHISTORY
+endif
+
 SO_LIB	= libft_malloc_${HOSTTYPE}.so
 TARGET	= libft_malloc.so
 
@@ -44,7 +49,7 @@ CLEAN = ${RED}Cleaning${RESET}
 
 ${OBJDIR}%.o: ${SRCDIR}%.c ${DEPS}
 	@echo "${COMPILE} $<"
-	@${CC} ${CFLAGS} -c $< ${INC} -o $@
+	@${CC} ${CFLAGS} ${HISTORY} -c $< ${INC} -o $@
 
 ${TARGET}: ${SO_LIB} ${LIBFT}
 	@ln -fs ${SO_LIB} $@

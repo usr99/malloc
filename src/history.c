@@ -6,7 +6,7 @@
 /*   By: mamartin <mamartin@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/07 12:17:15 by mamartin          #+#    #+#             */
-/*   Updated: 2022/11/07 13:28:34 by mamartin         ###   ########.fr       */
+/*   Updated: 2022/11/13 16:02:51 by mamartin         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,22 +28,19 @@ static void* realloc_history(size_t oldsize)
 	if (history == MAP_FAILED)
 		return NULL;
 
-	/* Set history size */
-	size_t* new = history;
-	*new = allocated;
-	++new;
-
-	/* Copy old history */
+	*(size_t*)history = allocated;
 	if (g_memory.history)
 	{
-		*new = *(size_t*)(g_memory.history + sizeof(size_t)); // nb of allocs stored in history
-		ft_memcpy(history + sizeof(size_t) * 2, g_memory.history + sizeof(size_t) * 2, oldsize);
+		/* Copy old history */
+		ft_memcpy(history + sizeof(size_t), g_memory.history + sizeof(size_t), oldsize - sizeof(size_t));
+
+		/* Unmap previous history buffer */
 		if (munmap(g_memory.history, oldsize) == 0)
 			g_memory.total_mem_usage += (allocated - oldsize);
 	}
-	else
+	else // init first history
 	{
-		*new = 0;
+		*((size_t*)history + 1) = 0;
 		g_memory.total_mem_usage += allocated;
 	}
 	return history;
@@ -58,7 +55,7 @@ static t_alloc_history* find_alloc(void* ptr)
 	size_t nallocs = *(size_t*)(g_memory.history + sizeof(size_t));
 	t_alloc_history* history = g_memory.history + sizeof(size_t) * 2;
 
-	while (i < nallocs && history[i].address != ptr)
+	while (i < nallocs && (history[i].address != ptr || history[i].free_time != 0))
 		i++;
 	return (i == nallocs) ? NULL : history + i;
 }
@@ -70,19 +67,17 @@ void push_history(void* ptr, size_t size)
 
 	gettimeofday(&tv, NULL);
 	if (!g_memory.history)
-	{
 		g_memory.history = realloc_history(0);
-		nallocs = g_memory.history + sizeof(size_t);
-	}
 	else
 	{
 		nallocs = g_memory.history + sizeof(size_t);
-		size_t size = *(size_t*)g_memory.history;
-		if (*nallocs >= (size - sizeof(size_t) * 2) / sizeof(t_alloc_history))
-			g_memory.history = realloc_history(size);
+		size_t current_bufsize = *(size_t*)g_memory.history;
+		if (*nallocs >= (current_bufsize - sizeof(size_t) * 2) / sizeof(t_alloc_history))
+			g_memory.history = realloc_history(current_bufsize);
 	}
 	if (!g_memory.history)
 		return ;
+	nallocs = g_memory.history + sizeof(size_t);
 
 	t_alloc_history* history = g_memory.history + sizeof(size_t) * 2;
 	history[*nallocs].address = ptr;
