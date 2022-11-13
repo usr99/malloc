@@ -29,11 +29,12 @@ static void* _realloc(void* ptr, size_t oldsize, size_t newsize)
 	if (!new)
 		return NULL;
 	lock_mutex();
-	ft_memcpy(new, ptr, oldsize);
+	ft_memcpy(new, ptr, (oldsize < newsize) ? oldsize : newsize);
+#ifdef HISTORY
 	update_history(ptr, new, newsize);
+#endif
 	unlock_mutex();
 	free(ptr);
-	update_history(ptr, new, newsize);
 	return new;
 }
 
