@@ -13,7 +13,7 @@ endif
 SO_LIB	= libft_malloc_${HOSTTYPE}.so
 TARGET	= libft_malloc.so
 
-CFLAGS	= -Wall -Wextra -fpic -g #-Werror
+CFLAGS	= -Wall -Wextra -Werror -fpic 
 LFLAGS	= -shared
 CC		= gcc
 
